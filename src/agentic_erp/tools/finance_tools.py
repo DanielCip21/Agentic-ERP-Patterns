@@ -20,8 +20,8 @@ _TRANSACTIONS: dict[str, dict] = {
 }
 
 _ACCOUNT_RISK: dict[str, dict] = {
-    "ACC-01": {"account_id": "ACC-01", "owner": "PTW Gaming International", "risk_score": 42, "avg_tx_amount": 5000, "jurisdictions": ["US", "EU", "SG"]},
-    "ACC-02": {"account_id": "ACC-02", "owner": "PTW Gaming Asia", "risk_score": 71, "avg_tx_amount": 3200, "jurisdictions": ["SG", "JP", "AU"]},
+    "ACC-01": {"account_id": "ACC-01", "owner": "Global Gaming International", "risk_score": 42, "avg_tx_amount": 5000, "jurisdictions": ["US", "EU", "SG"]},
+    "ACC-02": {"account_id": "ACC-02", "owner": "Global Gaming Asia", "risk_score": 71, "avg_tx_amount": 3200, "jurisdictions": ["SG", "JP", "AU"]},
 }
 
 _ANOMALY_RULES = [
