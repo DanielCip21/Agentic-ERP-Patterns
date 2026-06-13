@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import anthropic
@@ -108,6 +109,51 @@ class LivePlatformOrchestrator:
         """Route *task* to matched agents and return ``{platform: response}``."""
         targets = self._select_agents(task)
         return {name: self._agents[name].run(task) for name in targets}
+
+    async def run_async(self, task: str) -> dict[str, str]:
+        """Parallel version of ``run()`` — matched agents execute concurrently.
+
+        Uses ``asyncio.to_thread`` to run sync agents in a thread pool so all
+        network round-trips overlap. Latency = ``max(agent latencies)`` rather
+        than their sum.
+        """
+        targets = self._select_agents(task)
+        responses = await asyncio.gather(
+            *[asyncio.to_thread(self._agents[name].run, task) for name in targets]
+        )
+        return dict(zip(targets, responses))
+
+    async def run_and_synthesize_async(self, task: str) -> str:
+        """Parallel dispatch + async Claude synthesis.
+
+        Agents run concurrently; synthesis is a non-blocking thread-pool call.
+        Falls back to the single response when only one platform matched.
+        """
+        platform_results = await self.run_async(task)
+
+        if len(platform_results) == 1:
+            return next(iter(platform_results.values()))
+
+        combined = "\n\n".join(
+            f"[{name.upper()}]\n{resp}" for name, resp in platform_results.items()
+        )
+        synthesis_prompt = (
+            f"The following responses were gathered from multiple platform agents "
+            f"for this task: {task!r}\n\n{combined}\n\n"
+            "Synthesize these into a single clear, concise answer. "
+            "Call out any cross-platform insights, conflicts, or gaps."
+        )
+        response = await asyncio.to_thread(
+            lambda: self._client.messages.create(
+                model=self._model,
+                max_tokens=2048,
+                messages=[{"role": "user", "content": synthesis_prompt}],
+            )
+        )
+        for block in response.content:
+            if hasattr(block, "text"):
+                return block.text
+        return combined
 
     def run_and_synthesize(self, task: str) -> str:
         """Like ``run()`` but asks Claude to write a single unified answer.
