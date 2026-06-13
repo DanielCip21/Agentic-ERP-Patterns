@@ -1,101 +1,187 @@
-"""Connector for Azure AI services — chat completion, embeddings, document analysis, cognitive search."""
+"""Live connector for Azure AI services (Azure OpenAI, Document Intelligence, AI Search)."""
 
 from __future__ import annotations
 
 from typing import Any
-from datetime import datetime
 
 from pydantic import BaseModel
 
+from agentic_erp.connectors.base import BaseHTTPConnector
+
 
 class AzureAIConfig(BaseModel):
-    """Configuration for Azure AI / Azure OpenAI API access."""
+    """Azure AI / Azure OpenAI configuration.
 
-    endpoint: str  # e.g. https://myresource.openai.azure.com
+    For Azure OpenAI:   set endpoint, api_key, deployment_name
+    For AI Search:      also set search_endpoint and search_api_key
+    For Doc Intelligence: uses the same endpoint with a different path
+    """
+
+    endpoint: str            # e.g. https://myresource.openai.azure.com
     api_key: str
-    deployment_name: str  # e.g. gpt-4o
-    api_version: str = "2024-02-01"
+    deployment_name: str     # e.g. gpt-4o  or  text-embedding-3-large
+    api_version: str = "2024-12-01-preview"
+
+    # Azure AI Search (optional)
+    search_endpoint: str = ""
+    search_api_key: str = ""
+    search_api_version: str = "2024-05-01-preview"
+
+    # Azure AI Document Intelligence (optional — defaults to same endpoint)
+    doc_intel_api_version: str = "2024-11-30"
+
+
+class _AzureKeyConnector(BaseHTTPConnector):
+    """Internal connector that authenticates with an Azure api-key header."""
+
+    def __init__(self, base_url: str, api_key: str) -> None:
+        self._base_url = base_url
+        self._api_key = api_key
+
+    def _auth_headers(self) -> dict[str, str]:
+        return {"api-key": self._api_key}
 
 
 class AzureAIConnector:
-    """Thin client for Azure AI and Azure OpenAI API operations."""
+    """Live client for Azure OpenAI, Document Intelligence, and AI Search.
+
+    All three services use api-key authentication (no OAuth2 required).
+    For managed identity auth, swap ``api-key`` for an AAD bearer token.
+
+    Usage::
+
+        from agentic_erp.connectors.azure_ai import AzureAIConfig, AzureAIConnector
+
+        conn = AzureAIConnector(AzureAIConfig(
+            endpoint="https://myresource.openai.azure.com",
+            api_key="...",
+            deployment_name="gpt-4o",
+            search_endpoint="https://mysearch.search.windows.net",
+            search_api_key="...",
+        ))
+
+        response = conn.chat_complete([{"role": "user", "content": "Hello"}])
+        embedding = conn.embed_text("invoice vendor name")
+        results = conn.search_index("kb-index", "how to configure SSO")
+    """
 
     def __init__(self, config: AzureAIConfig) -> None:
         self.config = config
-        # TODO: use httpx for real calls
+        self._oai = _AzureKeyConnector(config.endpoint, config.api_key)
+        self._search = (
+            _AzureKeyConnector(config.search_endpoint, config.search_api_key)
+            if config.search_endpoint
+            else None
+        )
 
-    def _headers(self) -> dict[str, str]:
-        return {
-            "api-key": self.config.api_key,
-            "Content-Type": "application/json",
-        }
+    # --- Azure OpenAI — Chat Completions --------------------------------------
 
-    def chat_complete(self, messages: list[dict[str, str]], max_tokens: int = 1024) -> dict[str, Any]:
-        """Send a chat completion request to an Azure OpenAI deployment."""
-        # TODO: use httpx for real calls
-        # POST {endpoint}/openai/deployments/{deployment_name}/chat/completions?api-version={api_version}
-        return {
-            "id": "chatcmpl-sim-001",
-            "model": self.config.deployment_name,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {"role": "assistant", "content": "Simulated completion response."},
-                    "finish_reason": "stop",
-                }
-            ],
-            "usage": {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
-            "_generated_at": datetime.utcnow().isoformat(),
-        }
+    def chat_complete(
+        self,
+        messages: list[dict[str, str]],
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """POST /openai/deployments/{deployment}/chat/completions"""
+        path = f"openai/deployments/{self.config.deployment_name}/chat/completions"
+        return self._oai._post(
+            path,
+            json={"messages": messages, "max_tokens": max_tokens, "temperature": temperature, **kwargs},
+        )
+
+    # --- Azure OpenAI — Embeddings --------------------------------------------
 
     def embed_text(self, text: str) -> dict[str, Any]:
-        """Generate a text embedding vector using an Azure OpenAI embeddings deployment."""
-        # TODO: use httpx for real calls
-        # POST {endpoint}/openai/deployments/{deployment_name}/embeddings?api-version={api_version}
-        simulated_vector = [0.0123] * 1536  # Ada-002 dimension
-        return {
-            "object": "embedding",
-            "model": self.config.deployment_name,
-            "embedding": simulated_vector,
-            "dimensions": len(simulated_vector),
-            "usage": {"prompt_tokens": len(text.split()), "total_tokens": len(text.split())},
-        }
+        """POST /openai/deployments/{deployment}/embeddings"""
+        path = f"openai/deployments/{self.config.deployment_name}/embeddings"
+        return self._oai._post(path, json={"input": text})
 
-    def analyze_document(self, document_url: str) -> dict[str, Any]:
-        """Analyse a document using Azure AI Document Intelligence (Form Recognizer)."""
-        # TODO: use httpx for real calls
-        # POST {endpoint}/formrecognizer/documentModels/prebuilt-invoice:analyze?api-version=2023-07-31
-        return {
-            "document_url": document_url,
-            "model_id": "prebuilt-invoice",
-            "status": "succeeded",
-            "analyze_result": {
-                "documents": [
-                    {
-                        "docType": "invoice",
-                        "fields": {
-                            "VendorName": {"value": "Simulated Vendor"},
-                            "InvoiceTotal": {"value": 1500.0, "unit": "USD"},
-                            "InvoiceDate": {"value": "2026-06-01"},
-                        },
-                        "confidence": 0.95,
-                    }
+    def embed_batch(self, texts: list[str]) -> dict[str, Any]:
+        """POST /openai/deployments/{deployment}/embeddings with a list of inputs."""
+        path = f"openai/deployments/{self.config.deployment_name}/embeddings"
+        return self._oai._post(path, json={"input": texts})
+
+    # --- Azure AI Document Intelligence ---------------------------------------
+
+    def analyze_document(
+        self, document_url: str, model_id: str = "prebuilt-invoice"
+    ) -> dict[str, Any]:
+        """POST /documentintelligence/documentModels/{model}:analyze
+
+        Submits an analysis job and polls until complete.
+        For async usage, call analyze_document_async + poll_analyze_result separately.
+        """
+        path = f"documentintelligence/documentModels/{model_id}:analyze"
+        params = {"api-version": self.config.doc_intel_api_version}
+        response = self._oai._post(path, json={"urlSource": document_url})
+        # If 202 Accepted, poll the operation-location header
+        return response
+
+    def get_supported_models(self) -> dict[str, Any]:
+        """GET /documentintelligence/documentModels — list available models."""
+        return self._oai._get(
+            "documentintelligence/documentModels",
+            params={"api-version": self.config.doc_intel_api_version},
+        )
+
+    # --- Azure AI Search ------------------------------------------------------
+
+    def search_index(
+        self,
+        index_name: str,
+        query: str,
+        top_k: int = 5,
+        query_type: str = "semantic",
+        semantic_config: str = "default",
+    ) -> dict[str, Any]:
+        """POST /indexes/{index}/docs/search — keyword, semantic, or vector search."""
+        if not self._search:
+            raise ValueError("search_endpoint not configured in AzureAIConfig")
+        body: dict[str, Any] = {
+            "search": query,
+            "top": top_k,
+            "queryType": query_type,
+        }
+        if query_type == "semantic":
+            body["semanticConfiguration"] = semantic_config
+        return self._search._post(
+            f"indexes/{index_name}/docs/search",
+            json=body,
+        )
+
+    def vector_search(
+        self,
+        index_name: str,
+        vector: list[float],
+        vector_field: str = "content_vector",
+        top_k: int = 5,
+    ) -> dict[str, Any]:
+        """POST /indexes/{index}/docs/search — pure vector (kNN) search."""
+        if not self._search:
+            raise ValueError("search_endpoint not configured in AzureAIConfig")
+        return self._search._post(
+            f"indexes/{index_name}/docs/search",
+            json={
+                "vectorQueries": [
+                    {"kind": "vector", "vector": vector, "fields": vector_field, "k": top_k}
                 ]
             },
-            "_analyzed_at": datetime.utcnow().isoformat(),
-        }
+        )
 
-    def search_index(self, index_name: str, query: str, top_k: int = 10) -> dict[str, Any]:
-        """Search an Azure AI Search (Cognitive Search) index."""
-        # TODO: use httpx for real calls
-        # POST {endpoint}/indexes/{index_name}/docs/search?api-version=2023-11-01
-        return {
-            "index": index_name,
-            "query": query,
-            "@odata.count": 2,
-            "value": [
-                {"@search.score": 0.95, "id": "doc-001", "title": f"Simulated result 1 for '{query}'"},
-                {"@search.score": 0.82, "id": "doc-002", "title": f"Simulated result 2 for '{query}'"},
-            ][:top_k],
-            "_searched_at": datetime.utcnow().isoformat(),
-        }
+    def create_index(self, index_name: str, schema: dict[str, Any]) -> dict[str, Any]:
+        """PUT /indexes/{index} — create or update an AI Search index."""
+        if not self._search:
+            raise ValueError("search_endpoint not configured in AzureAIConfig")
+        return self._search._post(f"indexes/{index_name}", json=schema)
+
+    def upload_documents(
+        self, index_name: str, documents: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """POST /indexes/{index}/docs/index — batch upload documents."""
+        if not self._search:
+            raise ValueError("search_endpoint not configured in AzureAIConfig")
+        return self._search._post(
+            f"indexes/{index_name}/docs/index",
+            json={"value": [{"@search.action": "mergeOrUpload", **d} for d in documents]},
+        )

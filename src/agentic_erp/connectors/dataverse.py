@@ -1,100 +1,136 @@
-"""Connector for Microsoft Dataverse — query, CRUD, and relationship association operations."""
+"""Live connector for Microsoft Dataverse Web API (OData v4)."""
 
 from __future__ import annotations
 
+import urllib.parse
 from typing import Any
-from datetime import datetime
 
 from pydantic import BaseModel
 
+from agentic_erp.connectors.auth import AzureADTokenManager
+from agentic_erp.connectors.base import BaseHTTPConnector
+
 
 class DataverseConfig(BaseModel):
-    """Configuration for Dataverse Web API authentication."""
+    """Dataverse Web API configuration."""
 
-    environment_url: str  # e.g. https://myorg.crm.dynamics.com
+    environment_url: str   # e.g. https://orgname.api.crm.dynamics.com
     tenant_id: str
     client_id: str
     client_secret: str
+    api_version: str = "v9.2"
 
 
-class DataverseConnector:
-    """Thin client for Microsoft Dataverse Web API operations."""
+class DataverseConnector(BaseHTTPConnector):
+    """Live client for the Microsoft Dataverse Web API (OData v4).
+
+    Authentication: Azure AD client_credentials grant.
+    Scope is derived automatically from the environment_url.
+
+    Usage::
+
+        from agentic_erp.connectors.dataverse import DataverseConfig, DataverseConnector
+
+        conn = DataverseConnector(DataverseConfig(
+            environment_url="https://orgname.api.crm.dynamics.com",
+            tenant_id="...",
+            client_id="...",
+            client_secret="...",
+        ))
+
+        accounts = conn.query("accounts", filter_expr="statecode eq 0",
+                              select_cols=["accountid", "name", "revenue"])
+        new_lead = conn.create("leads", {"lastname": "Smith", "companyname": "Acme"})
+    """
 
     def __init__(self, config: DataverseConfig) -> None:
         self.config = config
-        # TODO: use httpx for real calls; initialise OAuth2 token refresh
+        self._base_url = f"{config.environment_url}/api/data/{config.api_version}"
+        self._scope = f"{config.environment_url}/.default"
 
-    def _base_url(self) -> str:
-        return f"{self.config.environment_url}/api/data/v9.2"
-
-    def _headers(self) -> dict[str, str]:
-        # TODO: implement OAuth2 client-credentials token fetch
+    def _auth_headers(self) -> dict[str, str]:
+        token = AzureADTokenManager.get_token(
+            tenant_id=self.config.tenant_id,
+            client_id=self.config.client_id,
+            client_secret=self.config.client_secret,
+            scope=self._scope,
+        )
         return {
-            "Authorization": "Bearer <token>",
+            "Authorization": f"Bearer {token}",
             "OData-MaxVersion": "4.0",
             "OData-Version": "4.0",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            "Prefer": "odata.include-annotations=OData.Community.Display.V1.FormattedValue",
         }
 
-    def query(self, table: str, filter_expr: str = "", select_cols: list[str] | None = None) -> dict[str, Any]:
-        """Query a Dataverse table with optional OData filter and column selection."""
-        # TODO: use httpx for real calls
-        # GET {base_url}/{table}?$filter={filter_expr}&$select={select_cols}
-        select_param = ",".join(select_cols) if select_cols else "*"
-        return {
-            "@odata.context": f"{self._base_url()}/$metadata#{table}",
-            "value": [
-                {"id": "sim-row-001", "name": "Simulated Row 1", "_table": table},
-                {"id": "sim-row-002", "name": "Simulated Row 2", "_table": table},
-            ],
-            "_filter": filter_expr,
-            "_select": select_param,
-            "_retrieved_at": datetime.utcnow().isoformat(),
-        }
+    # --- Query ----------------------------------------------------------------
+
+    def query(
+        self,
+        table: str,
+        filter_expr: str = "",
+        select_cols: list[str] | None = None,
+        order_by: str = "",
+        top: int = 50,
+        expand: str = "",
+    ) -> dict[str, Any]:
+        """GET /{table} with OData $filter, $select, $orderby, $top, $expand."""
+        params: dict[str, Any] = {"$top": top}
+        if filter_expr:
+            params["$filter"] = filter_expr
+        if select_cols:
+            params["$select"] = ",".join(select_cols)
+        if order_by:
+            params["$orderby"] = order_by
+        if expand:
+            params["$expand"] = expand
+        return self._get(table, params=params)
+
+    def get(self, table: str, record_id: str, select_cols: list[str] | None = None) -> dict[str, Any]:
+        """GET /{table}({record_id}) — single record by primary key."""
+        params = {"$select": ",".join(select_cols)} if select_cols else None
+        return self._get(f"{table}({record_id})", params=params)
+
+    # --- Write ----------------------------------------------------------------
 
     def create(self, table: str, data: dict[str, Any]) -> dict[str, Any]:
-        """Create a new record in a Dataverse table."""
-        # TODO: use httpx for real calls
-        # POST {base_url}/{table}
-        return {
-            "id": "sim-new-record-001",
-            "table": table,
-            **data,
-            "_created_at": datetime.utcnow().isoformat(),
-        }
+        """POST /{table} — returns 201 with the created record (Prefer: return=representation)."""
+        return self._post(table, json=data)
 
     def update(self, table: str, record_id: str, data: dict[str, Any]) -> dict[str, Any]:
-        """Update an existing Dataverse record by ID."""
-        # TODO: use httpx for real calls
-        # PATCH {base_url}/{table}({record_id})
-        return {
-            "id": record_id,
-            "table": table,
-            **data,
-            "_updated_at": datetime.utcnow().isoformat(),
-        }
+        """PATCH /{table}({record_id}) — returns 204 No Content."""
+        return self._patch(f"{table}({record_id})", json=data)
+
+    def upsert(self, table: str, alternate_key: str, key_value: str, data: dict[str, Any]) -> dict[str, Any]:
+        """PATCH /{table}({alternateKey}='{keyValue}') — upsert by alternate key."""
+        return self._patch(f"{table}({alternate_key}='{key_value}')", json=data)
 
     def delete(self, table: str, record_id: str) -> dict[str, Any]:
-        """Delete a Dataverse record by ID."""
-        # TODO: use httpx for real calls
-        # DELETE {base_url}/{table}({record_id})
-        return {
-            "id": record_id,
-            "table": table,
-            "deleted": True,
-            "_deleted_at": datetime.utcnow().isoformat(),
-        }
+        """DELETE /{table}({record_id}) — returns 204 No Content."""
+        return self._delete(f"{table}({record_id})")
 
-    def associate(self, table: str, record_id: str, relationship: str, related_id: str) -> dict[str, Any]:
-        """Associate two Dataverse records via a named relationship."""
-        # TODO: use httpx for real calls
-        # POST {base_url}/{table}({record_id})/{relationship}/$ref
-        return {
-            "table": table,
-            "record_id": record_id,
-            "relationship": relationship,
-            "related_id": related_id,
-            "associated": True,
-            "_associated_at": datetime.utcnow().isoformat(),
-        }
+    # --- Relationships --------------------------------------------------------
+
+    def associate(
+        self, table: str, record_id: str, relationship: str, related_table: str, related_id: str
+    ) -> dict[str, Any]:
+        """POST /{table}({id})/{relationship}/$ref — create a N:N association."""
+        return self._post(
+            f"{table}({record_id})/{relationship}/$ref",
+            json={"@odata.id": f"{self._base_url}/{related_table}({related_id})"},
+        )
+
+    def disassociate(self, table: str, record_id: str, relationship: str, related_id: str) -> dict[str, Any]:
+        """DELETE /{table}({id})/{relationship}({related_id})/$ref — remove N:N link."""
+        return self._delete(f"{table}({record_id})/{relationship}({related_id})/$ref")
+
+    # --- Batch / FetchXML -----------------------------------------------------
+
+    def execute_fetch_xml(self, table: str, fetch_xml: str) -> list[dict[str, Any]]:
+        """GET /{table}?fetchXml={encoded} — complex multi-entity FetchXML query."""
+        encoded = urllib.parse.quote(fetch_xml)
+        result = self._get(f"{table}?fetchXml={encoded}")
+        return result.get("value", [])
+
+    def batch(self, requests: list[dict[str, Any]]) -> dict[str, Any]:
+        """POST /$batch — execute multiple operations in a single round trip."""
+        return self._post("$batch", json={"requests": requests})
