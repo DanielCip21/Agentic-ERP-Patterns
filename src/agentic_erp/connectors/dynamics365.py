@@ -1,87 +1,140 @@
-"""Connector for Microsoft Dynamics 365 — accounts, leads, opportunities, sales orders, contacts."""
+"""Live connector for Microsoft Dynamics 365 Web API (OData v4)."""
 
 from __future__ import annotations
 
 from typing import Any
-from datetime import datetime
 
 from pydantic import BaseModel
 
+from agentic_erp.connectors.auth import AzureADTokenManager
+from agentic_erp.connectors.base import BaseHTTPConnector
+
 
 class Dynamics365Config(BaseModel):
-    """Configuration for Dynamics 365 API authentication and endpoint."""
-
     tenant_id: str
     client_id: str
     client_secret: str
-    environment_url: str  # e.g. https://myorg.crm.dynamics.com
+    environment_url: str   # e.g. https://orgname.crm.dynamics.com
+    api_version: str = "v9.2"
 
 
-class Dynamics365Connector:
-    """Thin client for Dynamics 365 Web API operations."""
+class Dynamics365Connector(BaseHTTPConnector):
+    """Live client for the Dynamics 365 Web API.
+
+    Authentication: Azure AD client_credentials grant.
+    Tokens are cached and refreshed automatically by AzureADTokenManager.
+
+    Usage::
+
+        from agentic_erp.connectors.dynamics365 import Dynamics365Config, Dynamics365Connector
+
+        connector = Dynamics365Connector(Dynamics365Config(
+            tenant_id="...",
+            client_id="...",
+            client_secret="...",
+            environment_url="https://myorg.crm.dynamics.com",
+        ))
+        account = connector.get_account("00000000-0000-0000-0000-000000000001")
+    """
 
     def __init__(self, config: Dynamics365Config) -> None:
         self.config = config
-        # TODO: use httpx for real calls; initialise OAuth token refresh here
+        self._base_url = f"{config.environment_url}/api/data/{config.api_version}"
+        # OData scope is always environment_url/.default
+        self._scope = f"{config.environment_url}/.default"
 
-    def _headers(self) -> dict[str, str]:
-        # TODO: implement OAuth2 client-credentials token fetch
+    # --- Auth ------------------------------------------------------------------
+
+    def _auth_headers(self) -> dict[str, str]:
+        token = AzureADTokenManager.get_token(
+            tenant_id=self.config.tenant_id,
+            client_id=self.config.client_id,
+            client_secret=self.config.client_secret,
+            scope=self._scope,
+        )
         return {
-            "Authorization": "Bearer <token>",
+            "Authorization": f"Bearer {token}",
             "OData-MaxVersion": "4.0",
             "OData-Version": "4.0",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            "Prefer": "odata.include-annotations=OData.Community.Display.V1.FormattedValue",
         }
 
-    def get_account(self, account_id: str) -> dict[str, Any]:
-        """Retrieve a Dynamics 365 account record by ID."""
-        # TODO: use httpx for real calls
-        # GET {environment_url}/api/data/v9.2/accounts({account_id})
-        return {
-            "accountid": account_id,
-            "name": "Simulated Account",
-            "telephone1": "555-0100",
-            "websiteurl": "https://example.com",
-            "revenue": 1000000,
-            "_retrieved_at": datetime.utcnow().isoformat(),
-        }
+    # --- Accounts --------------------------------------------------------------
+
+    def get_account(self, account_id: str, select: list[str] | None = None) -> dict[str, Any]:
+        """GET /accounts({account_id})"""
+        params = {"$select": ",".join(select)} if select else None
+        return self._get(f"accounts({account_id})", params=params)
+
+    def list_accounts(
+        self, filter_expr: str = "", select: list[str] | None = None, top: int = 50
+    ) -> list[dict[str, Any]]:
+        """GET /accounts with optional OData $filter, $select, $top."""
+        params: dict[str, Any] = {"$top": top}
+        if filter_expr:
+            params["$filter"] = filter_expr
+        if select:
+            params["$select"] = ",".join(select)
+        result = self._get("accounts", params=params)
+        return result.get("value", [])
+
+    # --- Leads -----------------------------------------------------------------
 
     def create_lead(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Create a new lead record in Dynamics 365."""
-        # TODO: use httpx for real calls
-        # POST {environment_url}/api/data/v9.2/leads
-        return {
-            "leadid": "sim-lead-001",
-            **data,
-            "_created_at": datetime.utcnow().isoformat(),
-        }
+        """POST /leads — returns the created lead with its new leadid."""
+        return self._post("leads", json=data)
+
+    def get_lead(self, lead_id: str) -> dict[str, Any]:
+        return self._get(f"leads({lead_id})")
+
+    # --- Opportunities ---------------------------------------------------------
+
+    def get_opportunity(self, opp_id: str) -> dict[str, Any]:
+        return self._get(f"opportunities({opp_id})")
 
     def update_opportunity(self, opp_id: str, data: dict[str, Any]) -> dict[str, Any]:
-        """Update fields on an existing opportunity record."""
-        # TODO: use httpx for real calls
-        # PATCH {environment_url}/api/data/v9.2/opportunities({opp_id})
-        return {
-            "opportunityid": opp_id,
-            **data,
-            "_updated_at": datetime.utcnow().isoformat(),
-        }
+        """PATCH /opportunities({opp_id}) — returns 204 No Content on success."""
+        return self._patch(f"opportunities({opp_id})", json=data)
 
-    def get_sales_orders(self, filter_expr: str) -> list[dict[str, Any]]:
-        """Retrieve sales orders matching an OData filter expression."""
-        # TODO: use httpx for real calls
-        # GET {environment_url}/api/data/v9.2/salesorders?$filter={filter_expr}
-        return [
-            {"salesorderid": "sim-so-001", "name": "Order #1001", "totalamount": 5000.0, "_filter": filter_expr},
-            {"salesorderid": "sim-so-002", "name": "Order #1002", "totalamount": 12500.0, "_filter": filter_expr},
-        ]
+    def list_opportunities(
+        self, filter_expr: str = "", select: list[str] | None = None, top: int = 50
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"$top": top}
+        if filter_expr:
+            params["$filter"] = filter_expr
+        if select:
+            params["$select"] = ",".join(select)
+        result = self._get("opportunities", params=params)
+        return result.get("value", [])
+
+    # --- Sales Orders ----------------------------------------------------------
+
+    def get_sales_order(self, order_id: str) -> dict[str, Any]:
+        return self._get(f"salesorders({order_id})")
+
+    def get_sales_orders(self, filter_expr: str = "", top: int = 50) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"$top": top}
+        if filter_expr:
+            params["$filter"] = filter_expr
+        result = self._get("salesorders", params=params)
+        return result.get("value", [])
+
+    def update_sales_order(self, order_id: str, data: dict[str, Any]) -> dict[str, Any]:
+        return self._patch(f"salesorders({order_id})", json=data)
+
+    # --- Contacts --------------------------------------------------------------
 
     def create_contact(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Create a new contact record in Dynamics 365."""
-        # TODO: use httpx for real calls
-        # POST {environment_url}/api/data/v9.2/contacts
-        return {
-            "contactid": "sim-contact-001",
-            **data,
-            "_created_at": datetime.utcnow().isoformat(),
-        }
+        return self._post("contacts", json=data)
+
+    def get_contact(self, contact_id: str) -> dict[str, Any]:
+        return self._get(f"contacts({contact_id})")
+
+    # --- Generic OData ---------------------------------------------------------
+
+    def execute_fetch_xml(self, entity: str, fetch_xml: str) -> list[dict[str, Any]]:
+        """POST /entity?fetchXml=... for complex multi-entity queries."""
+        import urllib.parse
+        encoded = urllib.parse.quote(fetch_xml)
+        result = self._get(f"{entity}?fetchXml={encoded}")
+        return result.get("value", [])

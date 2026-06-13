@@ -2,62 +2,82 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
+import respx
 
+from agentic_erp.connectors.auth import AzureADTokenManager
 from agentic_erp.connectors.dynamics365 import Dynamics365Config, Dynamics365Connector
 from agentic_erp.connectors.salesforce import SalesforceConfig, SalesforceConnector
 from agentic_erp.connectors.power_platform import PowerPlatformConfig, PowerPlatformConnector
 from agentic_erp.connectors.azure_ai import AzureAIConfig, AzureAIConnector
 from agentic_erp.connectors.dataverse import DataverseConfig, DataverseConnector
 
+_TOKEN = {"access_token": "fake-token", "expires_in": 3600}
+_D365_BASE = "https://testorg.crm.dynamics.com/api/data/v9.2"
+_TOKEN_URL = "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token"
+
+
+@pytest.fixture(autouse=True)
+def _clear_token_cache():
+    AzureADTokenManager.clear_cache()
+    yield
+    AzureADTokenManager.clear_cache()
+
 
 # ---------------------------------------------------------------------------
-# Dynamics365Connector
+# Dynamics365Connector  (live HTTP — mocked with respx)
 # ---------------------------------------------------------------------------
 
 class TestDynamics365Connector:
     def _make_connector(self) -> Dynamics365Connector:
-        config = Dynamics365Config(
-            tenant_id="test-tenant",
-            client_id="test-client",
-            client_secret="test-secret",
-            environment_url="https://testorg.crm.dynamics.com",
-        )
-        return Dynamics365Connector(config)
+        return Dynamics365Connector(Dynamics365Config(
+            tenant_id="test-tenant", client_id="test-client",
+            client_secret="test-secret", environment_url="https://testorg.crm.dynamics.com",
+        ))
 
     def test_instantiation(self):
-        connector = self._make_connector()
-        assert connector.config.tenant_id == "test-tenant"
+        assert self._make_connector().config.tenant_id == "test-tenant"
 
+    @respx.mock
     def test_get_account_returns_dict(self):
-        connector = self._make_connector()
-        result = connector.get_account("ACC-001")
-        assert isinstance(result, dict)
-        assert "accountid" in result
+        respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN))
+        respx.get(f"{_D365_BASE}/accounts(ACC-001)").mock(
+            return_value=httpx.Response(200, json={"accountid": "ACC-001", "name": "Contoso"}))
+        result = self._make_connector().get_account("ACC-001")
+        assert isinstance(result, dict) and "accountid" in result
 
+    @respx.mock
     def test_create_lead_returns_dict(self):
-        connector = self._make_connector()
-        result = connector.create_lead({"firstname": "Test", "lastname": "Lead", "company": "TestCo"})
-        assert isinstance(result, dict)
-        assert "leadid" in result
+        respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN))
+        respx.post(f"{_D365_BASE}/leads").mock(
+            return_value=httpx.Response(201, json={"leadid": "LEAD-001", "lastname": "Lead"}))
+        result = self._make_connector().create_lead({"firstname": "Test", "lastname": "Lead"})
+        assert isinstance(result, dict) and "leadid" in result
 
+    @respx.mock
     def test_update_opportunity_returns_dict(self):
-        connector = self._make_connector()
-        result = connector.update_opportunity("OPP-001", {"estimatedvalue": 50000})
+        respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN))
+        respx.patch(f"{_D365_BASE}/opportunities(OPP-001)").mock(
+            return_value=httpx.Response(204))
+        result = self._make_connector().update_opportunity("OPP-001", {"estimatedvalue": 50000})
         assert isinstance(result, dict)
-        assert "opportunityid" in result
 
+    @respx.mock
     def test_get_sales_orders_returns_list(self):
-        connector = self._make_connector()
-        result = connector.get_sales_orders("statuscode eq 1")
-        assert isinstance(result, list)
-        assert len(result) > 0
+        respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN))
+        respx.get(f"{_D365_BASE}/salesorders").mock(
+            return_value=httpx.Response(200, json={"value": [{"salesorderid": "SO-1"}]}))
+        result = self._make_connector().get_sales_orders("statuscode eq 1")
+        assert isinstance(result, list) and len(result) > 0
 
+    @respx.mock
     def test_create_contact_returns_dict(self):
-        connector = self._make_connector()
-        result = connector.create_contact({"firstname": "Jane", "lastname": "Doe", "emailaddress1": "jane@test.com"})
-        assert isinstance(result, dict)
-        assert "contactid" in result
+        respx.post(_TOKEN_URL).mock(return_value=httpx.Response(200, json=_TOKEN))
+        respx.post(f"{_D365_BASE}/contacts").mock(
+            return_value=httpx.Response(201, json={"contactid": "CON-001", "firstname": "Jane"}))
+        result = self._make_connector().create_contact({"firstname": "Jane", "lastname": "Doe"})
+        assert isinstance(result, dict) and "contactid" in result
 
 
 # ---------------------------------------------------------------------------
