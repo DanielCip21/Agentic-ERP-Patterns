@@ -1,4 +1,5 @@
 from agentic_erp.agents.base import BaseERPAgent
+from agentic_erp.agents.async_base import AsyncBaseERPAgent
 from agentic_erp.agents.order_agent import OrderProcessingAgent
 from agentic_erp.agents.inventory_agent import InventoryAgent
 from agentic_erp.agents.fraud_detection_agent import FraudDetectionAgent
@@ -10,6 +11,7 @@ from agentic_erp.agents.game_analytics_agent import GameRevenueAnalyticsAgent
 
 __all__ = [
     "BaseERPAgent",
+    "AsyncBaseERPAgent",
     "OrderProcessingAgent",
     "InventoryAgent",
     "FraudDetectionAgent",
