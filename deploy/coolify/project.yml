@@ -1,0 +1,77 @@
+# Coolify project definition for the Master ERP+CRM stack
+# Deploy with: coolify project import --file deploy/coolify/project.yml
+#
+# github.com/coollabsio/coolify
+
+name: agentic-erp-crm
+description: "Self-hosted Agentic ERP+CRM powered by Claude AI"
+
+environments:
+  - name: production
+    services:
+      - name: erp-api
+        type: dockerfile
+        dockerfile_path: deploy/Dockerfile
+        build_context: .
+        port: 8080
+        domains:
+          - erp.${BASE_DOMAIN}
+        env:
+          ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+          N8N_BASE_URL: "http://n8n:5678"
+          N8N_API_KEY: "${N8N_API_KEY}"
+          UPTIME_KUMA_URL: "http://uptime-kuma:3001"
+
+      - name: n8n
+        type: docker-image
+        image: n8nio/n8n:latest
+        port: 5678
+        domains:
+          - n8n.${BASE_DOMAIN}
+        volumes:
+          - n8n_data:/home/node/.n8n
+        env:
+          N8N_BASIC_AUTH_ACTIVE: "true"
+          N8N_BASIC_AUTH_USER: "${N8N_USER}"
+          N8N_BASIC_AUTH_PASSWORD: "${N8N_PASSWORD}"
+          N8N_ENCRYPTION_KEY: "${N8N_ENCRYPTION_KEY}"
+          DB_TYPE: postgresdb
+          DB_POSTGRESDB_HOST: postgres
+          DB_POSTGRESDB_DATABASE: erp_crm
+          DB_POSTGRESDB_USER: "${POSTGRES_USER}"
+          DB_POSTGRESDB_PASSWORD: "${POSTGRES_PASSWORD}"
+
+      - name: uptime-kuma
+        type: docker-image
+        image: louislam/uptime-kuma:1
+        port: 3001
+        domains:
+          - status.${BASE_DOMAIN}
+        volumes:
+          - uptime_kuma_data:/app/data
+
+      - name: postgres
+        type: docker-image
+        image: postgres:16-alpine
+        port: 5432
+        volumes:
+          - postgres_data:/var/lib/postgresql/data
+        env:
+          POSTGRES_DB: erp_crm
+          POSTGRES_USER: "${POSTGRES_USER}"
+          POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
+      - name: redis
+        type: docker-image
+        image: redis:7-alpine
+        port: 6379
+        volumes:
+          - redis_data:/data
+
+required_env_vars:
+  - ANTHROPIC_API_KEY
+  - POSTGRES_PASSWORD
+  - N8N_PASSWORD
+  - N8N_ENCRYPTION_KEY
+  - N8N_API_KEY
+  - BASE_DOMAIN

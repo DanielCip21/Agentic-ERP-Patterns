@@ -1,0 +1,59 @@
+# Secure tunnel configuration for exposing the ERP+CRM stack
+# without opening firewall ports.
+#
+# Option A (Recommended): Cloudflare Tunnel — zero-trust, free
+#   Docs: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
+#   Install: brew install cloudflared  OR  apt install cloudflared
+#   Setup:   cloudflared tunnel login && cloudflared tunnel create erp-crm
+#
+# Option B: frp (Fast Reverse Proxy) — self-hosted
+#   github.com/fatedier/frp  (listed in awesome-tunneling)
+#
+# Option C: SirTunnel (simplest, recommended by awesome-tunneling for devs)
+#   github.com/anderspitman/SirTunnel
+#
+# See the full list: github.com/anderspitman/awesome-tunneling
+
+# ── Cloudflare Tunnel (cloudflared) ───────────────────────────────────────────
+# Run: cloudflared tunnel run --config deploy/tunnel/config.yml
+
+tunnel: erp-crm-tunnel
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  # ERP+CRM API
+  - hostname: erp.yourdomain.com
+    service: http://localhost:8080
+
+  # n8n Workflow Automation
+  - hostname: n8n.yourdomain.com
+    service: http://localhost:5678
+
+  # Uptime Kuma Status Page
+  - hostname: status.yourdomain.com
+    service: http://localhost:3001
+
+  # Coolify Deployment Dashboard
+  - hostname: deploy.yourdomain.com
+    service: http://localhost:8000
+
+  # Catch-all (required by cloudflared)
+  - service: http_status:404
+
+# ── frp Client Config (alternative to cloudflared) ───────────────────────────
+# Rename to frpc.ini and run: frpc -c deploy/tunnel/frpc.ini
+#
+# [common]
+# server_addr = your-frp-server.com
+# server_port = 7000
+# token = your-secret-token
+#
+# [erp-api]
+# type = http
+# local_port = 8080
+# custom_domains = erp.yourdomain.com
+#
+# [n8n]
+# type = http
+# local_port = 5678
+# custom_domains = n8n.yourdomain.com

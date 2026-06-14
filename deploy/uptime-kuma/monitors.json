@@ -1,0 +1,96 @@
+{
+  "version": "1.0",
+  "description": "Uptime Kuma monitor configuration for the Master ERP+CRM stack",
+  "status_page": {
+    "slug": "erp-crm",
+    "title": "ERP+CRM System Status",
+    "description": "Real-time status of all Agentic ERP+CRM services"
+  },
+  "monitors": [
+    {
+      "name": "ERP API",
+      "type": "http",
+      "url": "http://erp-api:8080/health",
+      "method": "GET",
+      "interval": 60,
+      "retryInterval": 20,
+      "maxretries": 3,
+      "keyword": "",
+      "tags": ["erp", "core"]
+    },
+    {
+      "name": "n8n Workflow Engine",
+      "type": "http",
+      "url": "http://n8n:5678/healthz",
+      "method": "GET",
+      "interval": 60,
+      "retryInterval": 20,
+      "maxretries": 3,
+      "tags": ["automation", "core"]
+    },
+    {
+      "name": "PostgreSQL Database",
+      "type": "port",
+      "hostname": "postgres",
+      "port": 5432,
+      "interval": 60,
+      "retryInterval": 20,
+      "maxretries": 3,
+      "tags": ["database", "core"]
+    },
+    {
+      "name": "Redis Cache",
+      "type": "port",
+      "hostname": "redis",
+      "port": 6379,
+      "interval": 60,
+      "retryInterval": 20,
+      "maxretries": 3,
+      "tags": ["cache", "core"]
+    },
+    {
+      "name": "Coolify Dashboard",
+      "type": "http",
+      "url": "http://coolify:8000",
+      "method": "GET",
+      "interval": 120,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "tags": ["deployment", "infra"]
+    },
+    {
+      "name": "ERP Order Pipeline Webhook",
+      "type": "http",
+      "url": "http://n8n:5678/webhook-test/erp/order-pipeline",
+      "method": "GET",
+      "interval": 300,
+      "retryInterval": 60,
+      "maxretries": 2,
+      "tags": ["workflow", "erp"]
+    },
+    {
+      "name": "CRM Lead Nurturing Webhook",
+      "type": "http",
+      "url": "http://n8n:5678/webhook-test/crm/lead-nurturing",
+      "method": "GET",
+      "interval": 300,
+      "retryInterval": 60,
+      "maxretries": 2,
+      "tags": ["workflow", "crm"]
+    }
+  ],
+  "notification_channels": [
+    {
+      "name": "ERP Slack",
+      "type": "slack",
+      "webhook_url": "${SLACK_WEBHOOK_URL}",
+      "apply_to": ["core"]
+    },
+    {
+      "name": "ERP Email",
+      "type": "smtp",
+      "to": "${ALERT_EMAIL}",
+      "apply_to": ["core", "database"]
+    }
+  ]
+}

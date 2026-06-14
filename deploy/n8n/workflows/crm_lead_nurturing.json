@@ -1,0 +1,118 @@
+{
+  "name": "CRM Lead Nurturing Pipeline",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "path": "crm/lead-nurturing",
+        "method": "POST",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      }
+    },
+    {
+      "id": "score-lead",
+      "name": "AI Lead Scoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Qualify lead {{ $json.body.lead_id }} with score based on company size and engagement: {{ $json.body.company_size }} employees, source: {{ $json.body.source }}\"}"
+      }
+    },
+    {
+      "id": "score-router",
+      "name": "Score >= 60?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.crm_agent }}",
+              "operation": "contains",
+              "value2": "qualified"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "assign-to-sales",
+      "name": "Assign to Sales Rep",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Assign lead {{ $('New Lead Webhook').first().json.body.lead_id }} to sales1@erp.io and log a call activity with note: high-score lead from {{ $('New Lead Webhook').first().json.body.source }}\"}"
+      }
+    },
+    {
+      "id": "schedule-follow-up",
+      "name": "Schedule Follow-Up",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1120, 200],
+      "parameters": {
+        "resume": "timeInterval",
+        "unit": "days",
+        "amount": 2
+      }
+    },
+    {
+      "id": "follow-up-email",
+      "name": "Log Follow-Up Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Log email activity for lead {{ $('New Lead Webhook').first().json.body.lead_id }}: 2-day follow-up email sent\"}"
+      }
+    },
+    {
+      "id": "nurture-sequence",
+      "name": "Add to Nurture Sequence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Log note activity for lead {{ $('New Lead Webhook').first().json.body.lead_id }}: added to 30-day nurture email sequence, score below threshold\"}"
+      }
+    }
+  ],
+  "connections": {
+    "New Lead Webhook": { "main": [[{ "node": "AI Lead Scoring", "type": "main", "index": 0 }]] },
+    "AI Lead Scoring": { "main": [[{ "node": "Score >= 60?", "type": "main", "index": 0 }]] },
+    "Score >= 60?": {
+      "main": [
+        [{ "node": "Assign to Sales Rep", "type": "main", "index": 0 }],
+        [{ "node": "Add to Nurture Sequence", "type": "main", "index": 0 }]
+      ]
+    },
+    "Assign to Sales Rep": { "main": [[{ "node": "Schedule Follow-Up", "type": "main", "index": 0 }]] },
+    "Schedule Follow-Up": { "main": [[{ "node": "Log Follow-Up Activity", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["crm", "leads", "automation", "nurturing"]
+}

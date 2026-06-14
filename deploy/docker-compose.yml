@@ -1,0 +1,145 @@
+version: "3.9"
+
+# Master ERP+CRM Self-Hosted Stack
+#
+# Services:
+#   - n8n           → workflow automation (github.com/n8n-io/n8n)
+#   - uptime-kuma   → health monitoring   (github.com/louislam/uptime-kuma)
+#   - coolify       → deployment mgmt     (github.com/coollabsio/coolify)
+#   - postgres      → shared database
+#   - redis         → cache + queues
+#   - erp-api       → this project's agentic ERP+CRM API
+#
+# Deploy to Proxmox VE using community-scripts:
+#   https://github.com/community-scripts/ProxmoxVE
+#
+# Expose securely without opening ports using cloudflared tunnel:
+#   https://github.com/anderspitman/awesome-tunneling
+
+networks:
+  erp-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  n8n_data:
+  uptime_kuma_data:
+
+services:
+
+  # ── Shared Infrastructure ──────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks: [erp-net]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: erp_crm
+      POSTGRES_USER: ${POSTGRES_USER:-erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [erp-net]
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Workflow Automation (n8n) ──────────────────────────────────────
+  # github.com/n8n-io/n8n
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    networks: [erp-net]
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows:ro
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:?required}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?required}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: erp_crm
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-erp}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678}
+      N8N_API_KEY: ${N8N_API_KEY:?required}
+      QUEUE_BULL_REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Health Monitoring (Uptime Kuma) ───────────────────────────────
+  # github.com/louislam/uptime-kuma
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    networks: [erp-net]
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+
+  # ── ERP+CRM API ───────────────────────────────────────────────────
+
+  erp-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    networks: [erp-net]
+    ports:
+      - "8080:8080"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?required}
+      N8N_BASE_URL: http://n8n:5678
+      N8N_API_KEY: ${N8N_API_KEY}
+      UPTIME_KUMA_URL: http://uptime-kuma:3001
+      COOLIFY_URL: ${COOLIFY_URL:-http://coolify:8000}
+      COOLIFY_TOKEN: ${COOLIFY_TOKEN:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-erp}:${POSTGRES_PASSWORD}@postgres:5432/erp_crm
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+      - n8n
+      - uptime-kuma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Secure Tunnel (Cloudflare Zero Trust) ─────────────────────────
+  # See awesome-tunneling for alternatives: github.com/anderspitman/awesome-tunneling
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    networks: [erp-net]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    profiles: ["tunnel"]
