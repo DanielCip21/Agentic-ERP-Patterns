@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Generator
+import time
+from typing import TYPE_CHECKING, Any, Generator
 
 import anthropic
+
+from agentic_erp.cache.response_cache import ResponseCache
+
+if TYPE_CHECKING:
+    from agentic_erp.observability.tracing import Tracer
 
 
 class BaseERPAgent:
@@ -20,14 +26,41 @@ class BaseERPAgent:
         system_prompt: str,
         model: str = DEFAULT_MODEL,
         client: anthropic.Anthropic | None = None,
+        tracer: "Tracer | None" = None,
+        cache: "ResponseCache | None" = None,
     ) -> None:
         self.tools = tools
         self.system_prompt = system_prompt
         self.model = model
         self.client = client or anthropic.Anthropic()
+        self._tracer = tracer
+        self._cache = cache
 
     def run(self, user_message: str) -> str:
-        """Run the agentic loop and return the final text response."""
+        """Run the agentic loop and return the final text response.
+
+        Checks the response cache first (if configured). Wraps execution in a
+        tracer span (if configured). Caches the result before returning.
+        """
+        if self._cache is not None:
+            cache_key = ResponseCache.make_key(type(self).__name__, user_message)
+            cached = self._cache.get(cache_key)
+            if cached is not None:
+                return cached
+
+        if self._tracer is not None:
+            with self._tracer.span("agent.run", agent=type(self).__name__):
+                result = self._run_loop(user_message)
+        else:
+            result = self._run_loop(user_message)
+
+        if self._cache is not None:
+            self._cache.set(cache_key, result)  # type: ignore[possibly-undefined]
+
+        return result
+
+    def _run_loop(self, user_message: str) -> str:
+        """Inner tool-use loop — extracted so run() can wrap it cleanly."""
         messages: list[dict] = [{"role": "user", "content": user_message}]
 
         for _ in range(self.MAX_ITERATIONS):
@@ -38,7 +71,6 @@ class BaseERPAgent:
                 tools=self.tools,
                 messages=messages,
             )
-
             messages.append({"role": "assistant", "content": response.content})
 
             if response.stop_reason == "end_turn":
@@ -51,7 +83,11 @@ class BaseERPAgent:
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
-                        result = self._dispatch_tool(block.name, block.input)
+                        if self._tracer is not None:
+                            with self._tracer.span("tool.call", tool=block.name):
+                                result = self._dispatch_tool(block.name, block.input)
+                        else:
+                            result = self._dispatch_tool(block.name, block.input)
                         tool_results.append(
                             {
                                 "type": "tool_result",

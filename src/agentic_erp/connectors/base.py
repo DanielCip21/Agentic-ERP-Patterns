@@ -1,9 +1,9 @@
-"""Base HTTP connector with retry logic and structured error handling."""
+"""Base HTTP connector with retry logic, structured error handling, and GET caching."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from tenacity import (
@@ -12,6 +12,9 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
+
+if TYPE_CHECKING:
+    from agentic_erp.cache.response_cache import ResponseCache
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +58,14 @@ def retryable(func):
 class BaseHTTPConnector:
     """Shared HTTP plumbing for all ERP/CRM connectors.
 
-    Subclasses must implement `_auth_headers()` and set `_base_url`.
+    Subclasses must implement ``_auth_headers()`` and set ``_base_url``.
+    Set ``self._cache = ResponseCache(...)`` on an instance to enable
+    automatic GET-response caching (POST/PATCH/DELETE always bypass the cache).
     """
 
     _base_url: str = ""
     _timeout: float = 30.0
+    _cache: "ResponseCache | None" = None
 
     def _auth_headers(self) -> dict[str, str]:
         raise NotImplementedError
@@ -97,6 +103,14 @@ class BaseHTTPConnector:
         url = f"{self._base_url}/{path.lstrip('/')}"
         logger.debug("%s %s params=%s", method, url, params)
 
+        if method == "GET" and self._cache is not None:
+            from agentic_erp.cache.response_cache import ResponseCache
+            cache_key = ResponseCache.make_key("GET", url, params)
+            cached = self._cache.get(cache_key)
+            if cached is not None:
+                logger.debug("cache hit: %s", cache_key)
+                return cached
+
         response = httpx.request(
             method,
             url,
@@ -105,7 +119,12 @@ class BaseHTTPConnector:
             json=json,
             timeout=self._timeout,
         )
-        return self._handle_response(response)
+        result = self._handle_response(response)
+
+        if method == "GET" and self._cache is not None:
+            self._cache.set(cache_key, result)  # type: ignore[possibly-undefined]
+
+        return result
 
     @staticmethod
     def _handle_response(response: httpx.Response) -> dict[str, Any]:
