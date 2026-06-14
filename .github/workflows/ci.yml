@@ -6,25 +6,66 @@ on:
   pull_request:
     branches: ["main"]
 
+# ── Unit tests ─────────────────────────────────────────────────────────────
+# Runs on every push/PR. Anthropic client is fully mocked — no real key needed.
+#
+# ── Integration tests ──────────────────────────────────────────────────────
+# Runs only when the D365 and Teams secrets are present (i.e. on main or
+# branches in repos that have the secrets configured).  The job is skipped
+# automatically when any required secret is missing, so forks stay green.
+
 jobs:
-  test:
+  # --------------------------------------------------------------------------
+  unit-tests:
+    name: Unit tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
-      - name: Run tests
+      - name: Run unit tests
         env:
           ANTHROPIC_API_KEY: "sk-test-placeholder"
-        run: pytest --tb=short -q
+        run: pytest --tb=short -q --ignore=tests/integration
+
+  # --------------------------------------------------------------------------
+  integration-tests:
+    name: Integration tests (live D365 + Teams)
+    runs-on: ubuntu-latest
+    # Only run when all secrets are available — skipped on forks automatically
+    if: >
+      github.event_name == 'push' &&
+      vars.D365_ENVIRONMENT_URL != ''
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run integration tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          D365_TENANT_ID: ${{ secrets.D365_TENANT_ID }}
+          D365_CLIENT_ID: ${{ secrets.D365_CLIENT_ID }}
+          D365_CLIENT_SECRET: ${{ secrets.D365_CLIENT_SECRET }}
+          D365_ENVIRONMENT_URL: ${{ vars.D365_ENVIRONMENT_URL }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          TEAMS_RESPONSE_URL: ${{ secrets.TEAMS_RESPONSE_URL }}
+        run: pytest tests/integration --tb=short -q
