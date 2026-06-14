@@ -1,0 +1,116 @@
+{
+  "name": "ERP Order-to-Cash Pipeline",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Order Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "path": "erp/order-pipeline",
+        "method": "POST",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson"
+      }
+    },
+    {
+      "id": "validate-order",
+      "name": "Validate Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const order = $input.first().json.body;\nif (!order.order_id || !order.customer_id) {\n  throw new Error('Missing order_id or customer_id');\n}\nreturn [{ json: { ...order, validated_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "check-inventory",
+      "name": "Check Inventory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Check inventory for order {{ $json.order_id }} with SKU {{ $json.sku }}\"}"
+      }
+    },
+    {
+      "id": "inventory-router",
+      "name": "Stock Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.order_agent }}",
+              "operation": "contains",
+              "value2": "available"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "update-status-processing",
+      "name": "Mark Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Update order {{ $('Validate Order').first().json.order_id }} status to processing\"}"
+      }
+    },
+    {
+      "id": "update-crm-won",
+      "name": "Update CRM Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Log activity for account {{ $('Validate Order').first().json.account_id }}: order {{ $('Validate Order').first().json.order_id }} is now processing\"}"
+      }
+    },
+    {
+      "id": "notify-out-of-stock",
+      "name": "Flag Out of Stock",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "http://erp-api:8080/run",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"task\": \"Scan for low-stock items and create purchase orders for SKU {{ $('Validate Order').first().json.sku }}\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Order Webhook": { "main": [[{ "node": "Validate Order", "type": "main", "index": 0 }]] },
+    "Validate Order": { "main": [[{ "node": "Check Inventory", "type": "main", "index": 0 }]] },
+    "Check Inventory": { "main": [[{ "node": "Stock Available?", "type": "main", "index": 0 }]] },
+    "Stock Available?": {
+      "main": [
+        [{ "node": "Mark Processing", "type": "main", "index": 0 }],
+        [{ "node": "Flag Out of Stock", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Processing": { "main": [[{ "node": "Update CRM Activity", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["erp", "order", "automation"]
+}
