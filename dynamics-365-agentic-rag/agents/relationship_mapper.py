@@ -1,3 +1,4 @@
+"""Relationship Mapper agent — builds stakeholder maps and influence networks from D365 contact data."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

@@ -1,3 +1,4 @@
+"""Deal Predictor agent — forecasts deal win probability using D365 opportunity signals and RAG context."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

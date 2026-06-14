@@ -1,3 +1,4 @@
+"""Revenue Hunter agent — identifies upsell, cross-sell, and expansion opportunities across D365 accounts."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

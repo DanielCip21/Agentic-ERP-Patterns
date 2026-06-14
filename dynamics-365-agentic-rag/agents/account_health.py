@@ -1,3 +1,4 @@
+"""Account Health agent — monitors customer account vitals and flags at-risk accounts in Dynamics 365."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

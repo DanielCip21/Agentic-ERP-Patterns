@@ -1,0 +1,55 @@
+name: Daily Monitor
+
+on:
+  schedule:
+    # Run every day at 06:00 UTC
+    - cron: "0 6 * * *"
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+  # Also run on every push to the monitoring branch
+  push:
+    branches:
+      - "claude/monitoring-system-concept-seamra"
+    paths:
+      - "monitor/**"
+      - "src/**"
+      - "tests/**"
+
+jobs:
+  # ── Demo health check — no credentials needed ────────────────────────────
+  health-check:
+    name: Health Check & Daily Report (demo mode)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run unit tests
+        # Placeholder key so BaseERPAgent.__init__ doesn't fail on import
+        env:
+          ANTHROPIC_API_KEY: "sk-demo-placeholder"
+        run: pytest tests/ --ignore=tests/integration --tb=short -q
+
+      - name: Generate daily report
+        env:
+          ANTHROPIC_API_KEY: "sk-demo-placeholder"
+        run: python monitor/daily_report.py
+
+      - name: Show monitor dashboard
+        env:
+          ANTHROPIC_API_KEY: "sk-demo-placeholder"
+        run: python monitor/demo_monitor.py --json
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-monitor-report-${{ github.run_id }}
+          path: monitor/reports/
+          retention-days: 90

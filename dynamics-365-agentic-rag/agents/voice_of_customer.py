@@ -1,3 +1,4 @@
+"""Voice of Customer agent — extracts themes and sentiment from D365 case and survey data."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

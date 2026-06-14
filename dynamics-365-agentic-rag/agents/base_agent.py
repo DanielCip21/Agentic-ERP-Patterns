@@ -1,3 +1,4 @@
+"""Base agent class for all Dynamics 365 RAG agents — provides tool-use loop and D365 client wiring."""
 from __future__ import annotations
 
 import json

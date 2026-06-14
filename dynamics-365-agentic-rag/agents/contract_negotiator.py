@@ -1,3 +1,4 @@
+"""Contract Negotiator agent — recommends contract terms and flags risk clauses using D365 contract history."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

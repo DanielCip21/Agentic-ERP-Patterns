@@ -1,3 +1,4 @@
+"""Sales Coach agent — analyses rep activity in D365 and delivers personalised coaching recommendations."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

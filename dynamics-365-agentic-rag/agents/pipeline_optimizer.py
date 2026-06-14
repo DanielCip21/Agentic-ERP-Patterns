@@ -1,3 +1,4 @@
+"""Pipeline Optimizer agent — identifies pipeline bottlenecks and recommends stage-progression actions."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

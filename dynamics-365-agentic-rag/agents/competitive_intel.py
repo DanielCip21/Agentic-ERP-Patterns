@@ -1,3 +1,4 @@
+"""Competitive Intelligence agent — surfaces competitor insights from D365 opportunity and win/loss data."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent

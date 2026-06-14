@@ -1,3 +1,4 @@
+"""Churn Sentinel agent — detects early warning signals for customer churn via D365 engagement data."""
 from __future__ import annotations
 
 from agents.base_agent import BaseD365Agent
