@@ -1,6 +1,6 @@
 # Agentic ERP Patterns
 
-Enterprise Agentic AI architecture patterns for Microsoft Dynamics 365, Power Platform, Azure AI, Copilot Studio, Dataverse, and ERP automation.
+Enterprise Agentic AI architecture patterns for **Microsoft Dynamics 365**, **Power Platform**, **Azure AI**, **Copilot Studio**, and **Dataverse** — built with the Anthropic Claude SDK.
 
 Inspired by the PTW America AI-Driven D365 Finance Innovation Roadmap — 100+ innovations across 8 financial domains.
 
@@ -21,46 +21,35 @@ Inspired by the PTW America AI-Driven D365 Finance Innovation Roadmap — 100+ i
 
 ---
 
+## What's Inside
+
+| Pattern | File | Description |
+|---|---|---|
+| Tool-use agent | `agents/order_agent.py` | Manages order lifecycle: retrieve, verify inventory, update status |
+| Tool-use agent | `agents/inventory_agent.py` | Monitors stock levels, auto-creates purchase orders |
+| Multi-agent orchestration | `patterns/multi_agent.py` | Routes tasks across specialist agents |
+| Human-in-the-loop | `patterns/human_in_loop.py` | Gates high-value actions on human approval |
+| Async orchestrator | `patterns/async_orchestrator.py` | Runs multiple agents concurrently |
+| Teams approval | `patterns/teams_approval.py` | Microsoft Teams Adaptive Card approval callback |
+| Full ERP orchestrator | `patterns/erp_orchestrator.py` | Routes to all 8 financial domains automatically |
+| Simulated ERP tools | `tools/erp_tools.py` | Drop-in stubs for Dynamics 365 / Dataverse calls |
+
+All patterns share a single `BaseERPAgent` agentic loop (`agents/base.py`) and are independently testable with no live API required.
+
+---
+
 ## Architecture
 
 ```
 ERPOrchestrator
-├── GLAutomationAgent      ← gl_tools.py
-├── APAutomationAgent      ← ap_tools.py
-├── ARCollectionsAgent     ← ar_tools.py
-├── TreasuryManagementAgent← treasury_tools.py
-├── SupplyChainAgent       ← supply_chain_tools.py
-├── HRPayrollAgent         ← hr_tools.py
-├── SalesPipelineAgent     ← sales_tools.py
+├── GLAutomationAgent         ← gl_tools.py
+├── APAutomationAgent         ← ap_tools.py
+├── ARCollectionsAgent        ← ar_tools.py
+├── TreasuryManagementAgent   ← treasury_tools.py
+├── SupplyChainAgent          ← supply_chain_tools.py
+├── HRPayrollAgent            ← hr_tools.py
+├── SalesPipelineAgent        ← sales_tools.py
 └── FinancialForecastingAgent ← forecasting_tools.py
-```
-
-Each agent follows the **Claude tool-use agentic loop** pattern: the agent receives a task, calls tools iteratively, and returns a final synthesized response.
-
----
-
-## Quick Start
-
-```python
-import anthropic
-from agentic_erp.patterns.erp_orchestrator import ERPOrchestrator
-
-orchestrator = ERPOrchestrator(client=anthropic.Anthropic())
-
-# Route automatically to the right agent(s)
-results = orchestrator.run("Check liquidity forecast and flag any cash shortages")
-
-# Or target a specific domain
-gl_result = orchestrator.run_domain("gl", "Reconcile GL for period 2025-01 and detect anomalies")
-```
-
-### Individual agents
-
-```python
-from agentic_erp.agents.treasury_agent import TreasuryManagementAgent
-
-agent = TreasuryManagementAgent()
-print(agent.run("Convert 50000 USD to XRP and check the fraud risk on VND-001 for 45000 USD"))
 ```
 
 ---
@@ -68,9 +57,93 @@ print(agent.run("Convert 50000 USD to XRP and check the fraud risk on VND-001 fo
 ## Setup
 
 ```bash
-pip install -e .
-cp .env.example .env   # add ANTHROPIC_API_KEY
+# 1. Install
+pip install -e ".[dev]"
+
+# 2. Set your API key
+cp .env.example .env
+# edit .env → ANTHROPIC_API_KEY=sk-...
+
+# 3. Run tests (no API key needed — client is mocked)
 pytest
+```
+
+---
+
+## Quick Start
+
+### Full ERP Orchestrator (routes automatically)
+
+```python
+import anthropic
+from agentic_erp.patterns.erp_orchestrator import ERPOrchestrator
+
+orchestrator = ERPOrchestrator(client=anthropic.Anthropic())
+
+# Routes to the right agent(s) automatically
+results = orchestrator.run("Check liquidity forecast and flag any cash shortages")
+
+# Or target a specific domain directly
+gl_result = orchestrator.run_domain("gl", "Reconcile GL for period 2025-01 and detect anomalies")
+```
+
+### Individual Domain Agents
+
+```python
+from agentic_erp.agents.treasury_agent import TreasuryManagementAgent
+
+agent = TreasuryManagementAgent()
+print(agent.run("Convert 50000 USD to XRP and check fraud risk on VND-001 for 45000 USD"))
+```
+
+### Order Processing Agent
+
+```python
+from agentic_erp.agents.order_agent import OrderProcessingAgent
+
+agent = OrderProcessingAgent()
+print(agent.run("Check inventory for ORD-001 and mark it as processing if stock is available."))
+```
+
+### Multi-Agent Orchestrator
+
+```python
+from agentic_erp.patterns.multi_agent import MultiAgentOrchestrator
+
+orch = MultiAgentOrchestrator()
+results = orch.run("Run the daily ERP reconciliation — check orders and replenish stock.")
+for agent_name, response in results.items():
+    print(f"[{agent_name}] {response}")
+```
+
+### Human-in-the-Loop (approval gate)
+
+```python
+from agentic_erp.patterns.human_in_loop import HumanInLoopAgent
+
+def my_approval(tool_name, inputs):
+    # wire to Teams Adaptive Card, Power Automate flow, Slack, etc.
+    return True  # or False to block
+
+agent = HumanInLoopAgent(approval_callback=my_approval)
+print(agent.run("Cancel order ORD-002 due to customer request."))
+```
+
+---
+
+## Connecting to Real Dynamics 365 / Dataverse
+
+The functions in `tools/erp_tools.py` are stubs. Swap them for real calls:
+
+```python
+# Example: replace get_order with a Dataverse Web API call
+import requests, os
+
+def get_order(order_id: str) -> dict:
+    url = f"{os.environ['D365_URL']}/api/data/v9.2/salesorders({order_id})"
+    headers = {"Authorization": f"Bearer {get_token()}"}
+    r = requests.get(url, headers=headers)
+    return r.json()
 ```
 
 ---
@@ -130,3 +203,18 @@ pytest
 - Automated international tax compliance reporting
 - AI fraud pattern detection (structuring, self-approval)
 - Financial stress testing & scenario analysis
+
+---
+
+## Docs
+
+- [Strategic Innovation Report](docs/strategic-innovation-report.md) — AI-driven ERP transformation roadmap mapped to these patterns
+
+---
+
+## Requirements
+
+- Python 3.11+
+- `anthropic >= 0.40.0`
+- `pydantic >= 2.0.0`
+- `python-dotenv >= 1.0.0`
