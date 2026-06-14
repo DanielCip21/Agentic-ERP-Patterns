@@ -11,6 +11,7 @@ from agentic_erp.connectors.dataverse import DataverseConfig
 from agentic_erp.connectors.dynamics365 import Dynamics365Config
 from agentic_erp.connectors.power_platform import PowerPlatformConfig
 from agentic_erp.connectors.salesforce import SalesforceConfig
+from agentic_erp.patterns.circuit_breaker import CircuitBreaker, CircuitState
 from agentic_erp.patterns.live_platform_orchestrator import LivePlatformOrchestrator
 
 
@@ -239,3 +240,92 @@ class TestRunAndSynthesize:
 
         result = orch.run_and_synthesize("cross-platform report")
         assert isinstance(result, str)
+
+
+# ---------------------------------------------------------------------------
+# Circuit breaker integration
+# ---------------------------------------------------------------------------
+
+class TestCircuitBreakerIntegration:
+    def _orch(self) -> LivePlatformOrchestrator:
+        client = _mock_client()
+        orch = LivePlatformOrchestrator(
+            dynamics365_config=_d365_config(),
+            salesforce_config=_sf_config(),
+            client=client,
+            breaker_failure_threshold=2,
+            breaker_recovery_timeout=60.0,
+        )
+        orch._agents["dynamics365"] = _mock_agent("D365 ok")
+        orch._agents["salesforce"] = _mock_agent("SF ok")
+        return orch
+
+    def test_platform_status_all_closed_initially(self):
+        orch = self._orch()
+        status = orch.platform_status
+        assert all(v == "closed" for v in status.values())
+
+    def test_successful_run_keeps_breakers_closed(self):
+        orch = self._orch()
+        orch.run("D365 orders")
+        assert orch.platform_status["dynamics365"] == "closed"
+
+    def test_agent_exception_recorded_against_breaker(self):
+        orch = self._orch()
+        orch._agents["dynamics365"] = _mock_agent()
+        orch._agents["dynamics365"].run.side_effect = RuntimeError("timeout")
+
+        result = orch.run("D365 orders")
+        assert "[ERROR]" in result["dynamics365"]
+        assert orch._breakers["dynamics365"].failure_count == 1
+
+    def test_breaker_trips_after_threshold_failures(self):
+        orch = self._orch()
+        orch._agents["salesforce"].run.side_effect = RuntimeError("down")
+
+        orch.run("Salesforce query")
+        orch.run("Salesforce query")  # second failure trips breaker (threshold=2)
+        assert orch.platform_status["salesforce"] == "open"
+
+    def test_open_breaker_skipped_in_run(self):
+        orch = self._orch()
+        # Manually open the D365 breaker
+        orch._breakers["dynamics365"].record_failure()
+        orch._breakers["dynamics365"].record_failure()  # trips at threshold=2
+
+        result = orch.run("D365 orders")
+        assert "[UNAVAILABLE]" in result["dynamics365"]
+        orch._agents["dynamics365"].run.assert_not_called()
+
+    def test_open_breaker_skipped_in_run_async(self):
+        import asyncio
+        orch = self._orch()
+        orch._breakers["salesforce"].record_failure()
+        orch._breakers["salesforce"].record_failure()
+
+        results = asyncio.run(orch.run_async("Salesforce SOQL"))
+        assert "[UNAVAILABLE]" in results["salesforce"]
+        orch._agents["salesforce"].run.assert_not_called()
+
+    def test_breaker_resets_after_success(self):
+        orch = self._orch()
+        orch._agents["dynamics365"].run.side_effect = [RuntimeError("err"), "ok"]
+
+        orch.run("D365 orders")                 # 1 failure
+        assert orch._breakers["dynamics365"].failure_count == 1
+
+        orch._agents["dynamics365"].run.side_effect = None
+        orch._agents["dynamics365"].run.return_value = "ok"
+        orch.run("D365 orders")                 # success
+        assert orch._breakers["dynamics365"].failure_count == 0
+        assert orch.platform_status["dynamics365"] == "closed"
+
+    def test_manual_reset_reopens_tripped_breaker(self):
+        orch = self._orch()
+        orch._breakers["dynamics365"].record_failure()
+        orch._breakers["dynamics365"].record_failure()  # OPEN
+        assert orch.platform_status["dynamics365"] == "open"
+
+        orch._breakers["dynamics365"].reset()
+        assert orch.platform_status["dynamics365"] == "closed"
+        assert orch._breakers["dynamics365"].is_available

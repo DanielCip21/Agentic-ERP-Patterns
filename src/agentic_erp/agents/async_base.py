@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, AsyncGenerator
 
 import anthropic
 
@@ -64,6 +64,49 @@ class AsyncBaseERPAgent:
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
+                        result = await self._dispatch_tool(block.name, block.input)
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": json.dumps(result),
+                        })
+                messages.append({"role": "user", "content": tool_results})
+
+        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+
+    async def astream(self, user_message: str) -> AsyncGenerator[str, None]:
+        """Async streaming version — yields text tokens as they arrive from Claude.
+
+        Tool calls are awaited silently; only the final text turn is streamed.
+
+        Usage::
+
+            async for chunk in agent.astream("Summarise open orders"):
+                print(chunk, end="", flush=True)
+        """
+        messages: list[dict] = [{"role": "user", "content": user_message}]
+
+        for _ in range(self.MAX_ITERATIONS):
+            async with self.client.messages.stream(
+                model=self.model,
+                max_tokens=4096,
+                system=self.system_prompt,
+                tools=self.tools,
+                messages=messages,
+            ) as stream:
+                async for text_chunk in stream.text_stream:
+                    yield text_chunk
+                final = await stream.get_final_message()
+
+            messages.append({"role": "assistant", "content": final.content})
+
+            if final.stop_reason == "end_turn":
+                return
+
+            if final.stop_reason == "tool_use":
+                tool_results = []
+                for block in final.content:
+                    if hasattr(block, "type") and block.type == "tool_use":
                         result = await self._dispatch_tool(block.name, block.input)
                         tool_results.append({
                             "type": "tool_result",

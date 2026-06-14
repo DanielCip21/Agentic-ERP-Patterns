@@ -18,6 +18,7 @@ from agentic_erp.connectors.salesforce import SalesforceConfig
 from agentic_erp.crm.salesforce_crm_agent import SalesforceCRMAgent
 from agentic_erp.erp.dataverse_agent import DataverseAgent
 from agentic_erp.erp.dynamics365_order_agent import Dynamics365OrderAgent
+from agentic_erp.patterns.circuit_breaker import CircuitBreaker
 
 
 # Keywords used to fast-route a task to the relevant platform(s).
@@ -29,13 +30,19 @@ _PLATFORM_KEYWORDS: dict[str, set[str]] = {
     "dataverse": {"dataverse", "fetchxml", "odata", "entity", "association"},
 }
 
+_CIRCUIT_OPEN_MSG = "[UNAVAILABLE] {name} circuit is open — too many recent failures. Will retry after recovery timeout."
+
 
 class LivePlatformOrchestrator:
     """Routes a task to the right live platform agent(s) and aggregates results.
 
     Accepts optional configs for each platform. Only configured platforms participate.
-    Use ``run()`` for per-platform results or ``run_and_synthesize()`` for a single
-    Claude-written summary that spans all platforms.
+
+    Features:
+    - Keyword routing selects the right platform(s) per task
+    - Per-platform circuit breakers protect against cascading failures
+    - Parallel async dispatch via ``run_async`` / ``run_and_synthesize_async``
+    - Claude synthesis merges multi-platform responses into a single answer
 
     Usage::
 
@@ -47,13 +54,14 @@ class LivePlatformOrchestrator:
             azure_ai_config=AzureAIConfig(...),
         )
 
-        # Per-platform dict
+        # Per-platform dict (sequential, circuit-protected)
         results = orch.run("List open opportunities in both D365 and Salesforce.")
 
-        # Single synthesized answer
-        answer = orch.run_and_synthesize(
+        # Parallel + synthesized (async, circuit-protected)
+        import asyncio
+        answer = asyncio.run(orch.run_and_synthesize_async(
             "Compare CRM pipeline across Dynamics 365 and Salesforce for Q1."
-        )
+        ))
     """
 
     def __init__(
@@ -65,6 +73,8 @@ class LivePlatformOrchestrator:
         dataverse_config: DataverseConfig | None = None,
         client: anthropic.Anthropic | None = None,
         model: str = BaseERPAgent.DEFAULT_MODEL,
+        breaker_failure_threshold: int = 3,
+        breaker_recovery_timeout: float = 60.0,
     ) -> None:
         self._client = client or anthropic.Anthropic()
         self._model = model
@@ -84,10 +94,23 @@ class LivePlatformOrchestrator:
         if not self._agents:
             raise ValueError("At least one platform config must be provided.")
 
+        self._breakers: dict[str, CircuitBreaker] = {
+            name: CircuitBreaker(
+                failure_threshold=breaker_failure_threshold,
+                recovery_timeout=breaker_recovery_timeout,
+            )
+            for name in self._agents
+        }
+
     @property
     def configured_platforms(self) -> list[str]:
         """Names of all currently configured platforms."""
         return list(self._agents)
+
+    @property
+    def platform_status(self) -> dict[str, str]:
+        """Circuit breaker state per platform: 'closed', 'open', or 'half_open'."""
+        return {name: breaker.state.value for name, breaker in self._breakers.items()}
 
     def _select_agents(self, task: str) -> list[str]:
         """Keyword-route the task to a subset of configured platforms.
@@ -105,23 +128,54 @@ class LivePlatformOrchestrator:
         ]
         return matched or list(self._agents)
 
+    def _run_agent_safe(self, name: str, task: str) -> str:
+        """Run a single agent with circuit-breaker protection."""
+        breaker = self._breakers[name]
+        if not breaker.is_available:
+            return _CIRCUIT_OPEN_MSG.format(name=name)
+        try:
+            result = self._agents[name].run(task)
+            breaker.record_success()
+            return result
+        except Exception as exc:
+            breaker.record_failure()
+            return f"[ERROR] {name} failed: {exc}"
+
+    async def _run_agent_safe_async(self, name: str, task: str) -> tuple[str, str]:
+        """Async circuit-protected agent call for use with asyncio.gather."""
+        breaker = self._breakers[name]
+        if not breaker.is_available:
+            return name, _CIRCUIT_OPEN_MSG.format(name=name)
+        try:
+            result = await asyncio.to_thread(self._agents[name].run, task)
+            breaker.record_success()
+            return name, result
+        except Exception as exc:
+            breaker.record_failure()
+            return name, f"[ERROR] {name} failed: {exc}"
+
     def run(self, task: str) -> dict[str, str]:
-        """Route *task* to matched agents and return ``{platform: response}``."""
+        """Route *task* to matched agents and return ``{platform: response}``.
+
+        Open circuit breakers are skipped and flagged in the result dict.
+        Agent exceptions are caught, recorded against the breaker, and returned
+        as ``[ERROR]`` strings so one platform's failure never kills the call.
+        """
         targets = self._select_agents(task)
-        return {name: self._agents[name].run(task) for name in targets}
+        return {name: self._run_agent_safe(name, task) for name in targets}
 
     async def run_async(self, task: str) -> dict[str, str]:
         """Parallel version of ``run()`` — matched agents execute concurrently.
 
         Uses ``asyncio.to_thread`` to run sync agents in a thread pool so all
         network round-trips overlap. Latency = ``max(agent latencies)`` rather
-        than their sum.
+        than their sum. Circuit-protected: open platforms are skipped.
         """
         targets = self._select_agents(task)
-        responses = await asyncio.gather(
-            *[asyncio.to_thread(self._agents[name].run, task) for name in targets]
+        pairs = await asyncio.gather(
+            *[self._run_agent_safe_async(name, task) for name in targets]
         )
-        return dict(zip(targets, responses))
+        return dict(pairs)
 
     async def run_and_synthesize_async(self, task: str) -> str:
         """Parallel dispatch + async Claude synthesis.

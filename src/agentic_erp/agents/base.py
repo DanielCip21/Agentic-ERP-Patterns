@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Generator
 
 import anthropic
 
@@ -59,6 +59,50 @@ class BaseERPAgent:
                                 "content": json.dumps(result),
                             }
                         )
+                messages.append({"role": "user", "content": tool_results})
+
+        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+
+    def stream(self, user_message: str) -> Generator[str, None, None]:
+        """Stream the final text response token by token.
+
+        Tool calls are processed synchronously without streaming — only the
+        final assistant text turn is yielded chunk by chunk as it arrives.
+
+        Usage::
+
+            for chunk in agent.stream("List active orders"):
+                print(chunk, end="", flush=True)
+        """
+        messages: list[dict] = [{"role": "user", "content": user_message}]
+
+        for _ in range(self.MAX_ITERATIONS):
+            with self.client.messages.stream(
+                model=self.model,
+                max_tokens=4096,
+                system=self.system_prompt,
+                tools=self.tools,
+                messages=messages,
+            ) as stream:
+                for text_chunk in stream.text_stream:
+                    yield text_chunk
+                final = stream.get_final_message()
+
+            messages.append({"role": "assistant", "content": final.content})
+
+            if final.stop_reason == "end_turn":
+                return
+
+            if final.stop_reason == "tool_use":
+                tool_results = []
+                for block in final.content:
+                    if hasattr(block, "type") and block.type == "tool_use":
+                        result = self._dispatch_tool(block.name, block.input)
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": json.dumps(result),
+                        })
                 messages.append({"role": "user", "content": tool_results})
 
         raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
