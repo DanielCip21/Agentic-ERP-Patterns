@@ -154,6 +154,50 @@ class LivePlatformOrchestrator:
             breaker.record_failure()
             return name, f"[ERROR] {name} failed: {exc}"
 
+    def run_platform(self, platform: str, task: str) -> str:
+        """Run a single named platform agent with circuit-breaker protection.
+
+        Raises ``ValueError`` when *platform* is not configured.
+        """
+        if platform not in self._agents:
+            raise ValueError(
+                f"Platform {platform!r} is not configured. "
+                f"Available: {list(self._agents)}"
+            )
+        return self._run_agent_safe(platform, task)
+
+    async def run_platform_async(self, platform: str, task: str) -> str:
+        """Async version of ``run_platform``."""
+        if platform not in self._agents:
+            raise ValueError(
+                f"Platform {platform!r} is not configured. "
+                f"Available: {list(self._agents)}"
+            )
+        _, result = await self._run_agent_safe_async(platform, task)
+        return result
+
+    def stream_platform(self, platform: str, task: str):
+        """Yield text chunks from a single platform agent (generator).
+
+        Applies circuit-breaker protection; yields a single ``[ERROR]`` string
+        on failure rather than propagating the exception.
+        """
+        if platform not in self._agents:
+            raise ValueError(
+                f"Platform {platform!r} is not configured. "
+                f"Available: {list(self._agents)}"
+            )
+        breaker = self._breakers[platform]
+        if not breaker.is_available:
+            yield _CIRCUIT_OPEN_MSG.format(name=platform)
+            return
+        try:
+            yield from self._agents[platform].stream(task)
+            breaker.record_success()
+        except Exception as exc:
+            breaker.record_failure()
+            yield f"[ERROR] {platform} failed: {exc}"
+
     def run(self, task: str) -> dict[str, str]:
         """Route *task* to matched agents and return ``{platform: response}``.
 

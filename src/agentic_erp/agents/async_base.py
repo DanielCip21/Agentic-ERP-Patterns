@@ -34,23 +34,37 @@ class AsyncBaseERPAgent:
         system_prompt: str,
         model: str = DEFAULT_MODEL,
         client: anthropic.AsyncAnthropic | None = None,
+        enable_prompt_cache: bool = False,
     ) -> None:
         self.tools = tools
         self.system_prompt = system_prompt
         self.model = model
         self.client = client or anthropic.AsyncAnthropic()
+        self._enable_prompt_cache = enable_prompt_cache
+
+    def _system_param(self) -> str | list:
+        if self._enable_prompt_cache:
+            return [{"type": "text", "text": self.system_prompt, "cache_control": {"type": "ephemeral"}}]
+        return self.system_prompt
+
+    def _extra_headers(self) -> dict:
+        if self._enable_prompt_cache:
+            return {"anthropic-beta": "prompt-caching-2024-07-31"}
+        return {}
 
     async def run(self, user_message: str) -> str:
         """Drive the async tool-use loop and return the final text response."""
         messages: list[dict] = [{"role": "user", "content": user_message}]
+        extra_headers = self._extra_headers()
 
         for _ in range(self.MAX_ITERATIONS):
             response = await self.client.messages.create(
                 model=self.model,
                 max_tokens=4096,
-                system=self.system_prompt,
+                system=self._system_param(),
                 tools=self.tools,
                 messages=messages,
+                **({"extra_headers": extra_headers} if extra_headers else {}),
             )
             messages.append({"role": "assistant", "content": response.content})
 
@@ -85,14 +99,16 @@ class AsyncBaseERPAgent:
                 print(chunk, end="", flush=True)
         """
         messages: list[dict] = [{"role": "user", "content": user_message}]
+        extra_headers = self._extra_headers()
 
         for _ in range(self.MAX_ITERATIONS):
             async with self.client.messages.stream(
                 model=self.model,
                 max_tokens=4096,
-                system=self.system_prompt,
+                system=self._system_param(),
                 tools=self.tools,
                 messages=messages,
+                **({"extra_headers": extra_headers} if extra_headers else {}),
             ) as stream:
                 async for text_chunk in stream.text_stream:
                     yield text_chunk
