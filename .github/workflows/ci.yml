@@ -1,10 +1,13 @@
-name: CI
+name: CI — Test Suite
 
 on:
   push:
     branches: ["main", "feature/**", "claude/**"]
   pull_request:
     branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -24,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
-      - name: Run tests
+      - name: Run test suite
         env:
           ANTHROPIC_API_KEY: "sk-test-placeholder"
-        run: pytest --tb=short -q
+        run: python -m pytest tests/ -v --tb=short

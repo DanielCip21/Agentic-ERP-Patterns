@@ -1,0 +1,72 @@
+name: Claude Agent Continuous Build
+
+on:
+  issues:
+    types: [labeled]          # triggers when you add 'agent-build' label to an issue
+  workflow_dispatch:          # manual trigger from GitHub Actions UI
+    inputs:
+      prompt:
+        description: "Override build prompt (leave blank for default)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-build:
+    # Only run when the label added is 'agent-build'
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'agent-build')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" --quiet
+
+      - name: Run existing test suite before building
+        run: python -m pytest tests/ -q
+
+      - name: Claude Code — Build from Issue
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: "claude-sonnet-4-6"
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+          prompt: |
+            ${{ inputs.prompt != '' && inputs.prompt || format(
+              'You are the lead agent engineer on the Agentic-ERP-Patterns repo.
+
+              The GitHub issue that triggered this build:
+              Title: {0}
+              Body: {1}
+              Issue number: {2}
+
+              Instructions:
+              1. Read CLAUDE.md and README.md to understand the codebase architecture.
+              2. Implement the feature described in the issue, following the existing
+                 patterns (tools layer + agent class + tests).
+              3. Run `python -m pytest tests/ -v` and fix any failures before committing.
+              4. Commit your changes with a clear message referencing the issue.
+              5. Push to a new branch named feature/issue-{2}-<short-slug>.
+              6. Print a short build report: what was built, files changed, test results.',
+              github.event.issue.title,
+              github.event.issue.body,
+              github.event.issue.number
+            ) }}
+
+      - name: Run tests after build
+        run: python -m pytest tests/ -v --tb=short
