@@ -1,0 +1,29 @@
+services:
+  dev:
+    build: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: bash
+
+  test:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-sk-test-placeholder}
+    command: pytest --ignore=tests/integration -q
+
+  test-cov:
+    build: .
+    volumes:
+      - ./htmlcov:/app/htmlcov
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-sk-test-placeholder}
+    command: >
+      pytest --ignore=tests/integration
+      --cov=src/agentic_erp
+      --cov-report=term-missing
+      --cov-report=html:htmlcov
+      -q
