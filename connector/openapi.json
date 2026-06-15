@@ -1,0 +1,229 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Agentic ERP Patterns API",
+    "description": "REST endpoints exposing Dynavyx ERP AI agents for Microsoft Power Automate, Copilot Studio, and Teams integrations.",
+    "version": "0.1.0",
+    "contact": {
+      "name": "Dynavyx Technologies LLC",
+      "url": "https://www.dynavyx.com",
+      "email": "DanielCipu@Dynavyx.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://your-erp-api.azurewebsites.net",
+      "description": "Production (Azure App Service)"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "GetHealth",
+        "summary": "Health check",
+        "description": "Returns service status, agent count, and API version.",
+        "tags": ["meta"],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" },
+                "example": { "status": "ok", "agents": 9, "version": "0.1.0" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents": {
+      "get": {
+        "operationId": "ListAgents",
+        "summary": "List available agent domains",
+        "description": "Returns all ERP agent domains with descriptions.",
+        "tags": ["agents"],
+        "responses": {
+          "200": {
+            "description": "List of agent domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/AgentInfo" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{domain}/run": {
+      "post": {
+        "operationId": "RunAgent",
+        "summary": "Run an ERP agent",
+        "description": "Execute a natural-language task against a specific ERP agent domain.",
+        "tags": ["agents"],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "description": "Agent domain (order, inventory, fraud, crypto, compliance, cashflow, vendor, analytics, fixed_assets)",
+            "schema": {
+              "type": "string",
+              "enum": ["order", "inventory", "fraud", "crypto", "compliance", "cashflow", "vendor", "analytics", "fixed_assets"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RunRequest" },
+              "example": { "task": "Calculate depreciation for all assets this month" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent completed the task successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentRunResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent domain not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorDetail" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error — task field is missing or empty",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orchestrator/run": {
+      "post": {
+        "operationId": "RunOrchestrator",
+        "summary": "Run the ERP orchestrator",
+        "description": "Route a task through the ERP orchestrator — dispatches automatically to all matching agent domains.",
+        "tags": ["orchestrator"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RunRequest" },
+              "example": { "task": "Run the daily ERP health check" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Orchestrator results from all dispatched agents",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OrchestratorRunResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error — task field is missing or empty",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RunRequest": {
+        "type": "object",
+        "required": ["task"],
+        "properties": {
+          "task": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Natural-language task for the agent to execute",
+            "example": "Scan ACC-01 for fraudulent transactions in the last 24 hours"
+          }
+        }
+      },
+      "AgentRunResponse": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "example": "fraud" },
+          "result": { "type": "string", "example": "Transaction TX-1002 flagged as high-risk." },
+          "duration_ms": { "type": "number", "example": 1243.5 }
+        }
+      },
+      "OrchestratorRunResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "example": {
+              "order_agent": "ORD-001 updated to processing.",
+              "inventory_agent": "PO-4521 created for SKU-B."
+            }
+          }
+        }
+      },
+      "AgentInfo": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "example": "fixed_assets" },
+          "description": { "type": "string", "example": "Fixed assets automation: depreciation runs, disposal gain/loss, revaluation, asset register." }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "ok" },
+          "agents": { "type": "integer", "example": 9 },
+          "version": { "type": "string", "example": "0.1.0" }
+        }
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "detail": { "type": "string", "example": "Agent domain 'gl' not found." }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "loc": { "type": "array", "items": {} },
+                "msg": { "type": "string" },
+                "type": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
