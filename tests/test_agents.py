@@ -1,8 +1,6 @@
 """Integration-style tests for agents — Anthropic client is mocked."""
 
-import json
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from agentic_erp.agents.order_agent import OrderProcessingAgent
 from agentic_erp.agents.inventory_agent import InventoryAgent
 from agentic_erp.patterns.multi_agent import MultiAgentOrchestrator
@@ -20,7 +18,9 @@ def _make_text_response(text: str):
     return response
 
 
-def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str):
+def _make_tool_then_text_response(
+    tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str
+):
     """Simulate one tool-use round followed by an end_turn text response."""
     tool_block = MagicMock()
     tool_block.type = "tool_use"
@@ -46,7 +46,9 @@ def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id
 class TestOrderProcessingAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("Order ORD-001 is in pending status.")
+        client.messages.create.return_value = _make_text_response(
+            "Order ORD-001 is in pending status."
+        )
         agent = OrderProcessingAgent(client=client)
         result = agent.run("What is the status of order ORD-001?")
         assert "pending" in result.lower() or "ORD-001" in result
@@ -67,7 +69,10 @@ class TestInventoryAgent:
     def test_low_stock_scan(self):
         client = MagicMock()
         tool_resp, text_resp = _make_tool_then_text_response(
-            "list_low_stock_items", {}, "tu_xyz", "SKU-B is below reorder point. PO created."
+            "list_low_stock_items",
+            {},
+            "tu_xyz",
+            "SKU-B is below reorder point. PO created.",
         )
         client.messages.create.side_effect = [tool_resp, text_resp]
         agent = InventoryAgent(client=client)

@@ -14,7 +14,7 @@ from agentic_erp.connectors.base import BaseHTTPConnector
 class DataverseConfig(BaseModel):
     """Dataverse Web API configuration."""
 
-    environment_url: str   # e.g. https://orgname.api.crm.dynamics.com
+    environment_url: str  # e.g. https://orgname.api.crm.dynamics.com
     tenant_id: str
     client_id: str
     client_secret: str
@@ -85,7 +85,9 @@ class DataverseConnector(BaseHTTPConnector):
             params["$expand"] = expand
         return self._get(table, params=params)
 
-    def get(self, table: str, record_id: str, select_cols: list[str] | None = None) -> dict[str, Any]:
+    def get(
+        self, table: str, record_id: str, select_cols: list[str] | None = None
+    ) -> dict[str, Any]:
         """GET /{table}({record_id}) — single record by primary key."""
         params = {"$select": ",".join(select_cols)} if select_cols else None
         return self._get(f"{table}({record_id})", params=params)
@@ -96,11 +98,15 @@ class DataverseConnector(BaseHTTPConnector):
         """POST /{table} — returns 201 with the created record (Prefer: return=representation)."""
         return self._post(table, json=data)
 
-    def update(self, table: str, record_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    def update(
+        self, table: str, record_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """PATCH /{table}({record_id}) — returns 204 No Content."""
         return self._patch(f"{table}({record_id})", json=data)
 
-    def upsert(self, table: str, alternate_key: str, key_value: str, data: dict[str, Any]) -> dict[str, Any]:
+    def upsert(
+        self, table: str, alternate_key: str, key_value: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """PATCH /{table}({alternateKey}='{keyValue}') — upsert by alternate key."""
         return self._patch(f"{table}({alternate_key}='{key_value}')", json=data)
 
@@ -111,7 +117,12 @@ class DataverseConnector(BaseHTTPConnector):
     # --- Relationships --------------------------------------------------------
 
     def associate(
-        self, table: str, record_id: str, relationship: str, related_table: str, related_id: str
+        self,
+        table: str,
+        record_id: str,
+        relationship: str,
+        related_table: str,
+        related_id: str,
     ) -> dict[str, Any]:
         """POST /{table}({id})/{relationship}/$ref — create a N:N association."""
         return self._post(
@@ -119,7 +130,9 @@ class DataverseConnector(BaseHTTPConnector):
             json={"@odata.id": f"{self._base_url}/{related_table}({related_id})"},
         )
 
-    def disassociate(self, table: str, record_id: str, relationship: str, related_id: str) -> dict[str, Any]:
+    def disassociate(
+        self, table: str, record_id: str, relationship: str, related_id: str
+    ) -> dict[str, Any]:
         """DELETE /{table}({id})/{relationship}({related_id})/$ref — remove N:N link."""
         return self._delete(f"{table}({record_id})/{relationship}({related_id})/$ref")
 

@@ -14,7 +14,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "days_overdue": {"type": "integer", "description": "Minimum number of days overdue. Default 0 returns all open invoices."},
+                "days_overdue": {
+                    "type": "integer",
+                    "description": "Minimum number of days overdue. Default 0 returns all open invoices.",
+                },
             },
             "required": [],
         },
@@ -25,7 +28,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "description": {"type": "string", "description": "Expense description or vendor name"},
+                "description": {
+                    "type": "string",
+                    "description": "Expense description or vendor name",
+                },
                 "amount": {"type": "number", "description": "Expense amount in USD"},
             },
             "required": ["description", "amount"],
@@ -38,7 +44,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "invoice_id": {"type": "string", "description": "Invoice ID to pay"},
-                "date": {"type": "string", "description": "Payment date in YYYY-MM-DD format"},
+                "date": {
+                    "type": "string",
+                    "description": "Payment date in YYYY-MM-DD format",
+                },
             },
             "required": ["invoice_id", "date"],
         },
@@ -49,7 +58,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "account_id": {"type": "string", "description": "Account ID (e.g. ACC-1001)"},
+                "account_id": {
+                    "type": "string",
+                    "description": "Account ID (e.g. ACC-1001)",
+                },
             },
             "required": ["account_id"],
         },

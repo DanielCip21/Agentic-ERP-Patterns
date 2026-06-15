@@ -1,10 +1,8 @@
 """Tests showing BaseERPAgent with tracer and cache wired in, plus connector GET caching."""
 
-import json
 from unittest.mock import MagicMock
 
 import httpx
-import pytest
 import respx
 
 from agentic_erp.agents.base import BaseERPAgent
@@ -17,6 +15,7 @@ from agentic_erp.observability.tracing import Tracer
 # Concrete agent
 # ---------------------------------------------------------------------------
 
+
 class _EchoAgent(BaseERPAgent):
     def _dispatch_tool(self, name, inputs):
         return {"echo": inputs.get("text", "")}
@@ -25,6 +24,7 @@ class _EchoAgent(BaseERPAgent):
 # ---------------------------------------------------------------------------
 # Mock response helpers
 # ---------------------------------------------------------------------------
+
 
 def _text_resp(text):
     block = MagicMock()
@@ -51,6 +51,7 @@ def _tool_resp(name, inputs, tool_id="tu_1"):
 # ---------------------------------------------------------------------------
 # TestAgentWithTracer
 # ---------------------------------------------------------------------------
+
 
 class TestAgentWithTracer:
     def _make_agent(self, tracer=None, cache=None):
@@ -118,6 +119,7 @@ class TestAgentWithTracer:
 # TestAgentWithCache
 # ---------------------------------------------------------------------------
 
+
 class TestAgentWithCache:
     def _make_agent_with_cache(self):
         cache = ResponseCache()
@@ -170,6 +172,7 @@ class TestAgentWithCache:
 # ---------------------------------------------------------------------------
 # TestConnectorGetCaching
 # ---------------------------------------------------------------------------
+
 
 class _TestConnector(BaseHTTPConnector):
     _base_url = "https://api.example.com"

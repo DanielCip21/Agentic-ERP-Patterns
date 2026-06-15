@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from agentic_erp.api.gateway_agent import ApiGatewayAgent
 from agentic_erp.api.webhook_processor_agent import WebhookProcessorAgent
@@ -14,6 +13,7 @@ from agentic_erp.api.data_sync_agent import DataSyncAgent
 # ---------------------------------------------------------------------------
 # Test helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_text_response(text: str):
     block = MagicMock()
@@ -25,7 +25,9 @@ def _make_text_response(text: str):
     return response
 
 
-def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str):
+def _make_tool_then_text_response(
+    tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str
+):
     tool_block = MagicMock()
     tool_block.type = "tool_use"
     tool_block.name = tool_name
@@ -51,10 +53,13 @@ def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id
 # ApiGatewayAgent
 # ---------------------------------------------------------------------------
 
+
 class TestApiGatewayAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("All services healthy. Payment service latency 45ms.")
+        client.messages.create.return_value = _make_text_response(
+            "All services healthy. Payment service latency 45ms."
+        )
         agent = ApiGatewayAgent(client=client)
         result = agent.run("Check all service health")
         assert isinstance(result, str)
@@ -77,32 +82,46 @@ class TestApiGatewayAgent:
         agent = ApiGatewayAgent(client=MagicMock())
         result = agent._dispatch_tool(
             "call_api",
-            {"endpoint": "https://payments.internal/api/v2/charge", "method": "POST", "payload": {"amount": 100}},
+            {
+                "endpoint": "https://payments.internal/api/v2/charge",
+                "method": "POST",
+                "payload": {"amount": 100},
+            },
         )
         assert isinstance(result, dict)
         assert "status_code" in result
 
     def test_dispatch_call_api_no_payload(self):
         agent = ApiGatewayAgent(client=MagicMock())
-        result = agent._dispatch_tool("call_api", {"endpoint": "https://api.example.com/health", "method": "GET"})
+        result = agent._dispatch_tool(
+            "call_api", {"endpoint": "https://api.example.com/health", "method": "GET"}
+        )
         assert isinstance(result, dict)
 
     def test_dispatch_check_api_health(self):
         agent = ApiGatewayAgent(client=MagicMock())
-        result = agent._dispatch_tool("check_api_health", {"service_name": "inventory_service"})
+        result = agent._dispatch_tool(
+            "check_api_health", {"service_name": "inventory_service"}
+        )
         assert isinstance(result, dict)
         assert "status" in result
 
     def test_dispatch_check_api_health_unknown_service(self):
         agent = ApiGatewayAgent(client=MagicMock())
-        result = agent._dispatch_tool("check_api_health", {"service_name": "nonexistent_service"})
+        result = agent._dispatch_tool(
+            "check_api_health", {"service_name": "nonexistent_service"}
+        )
         assert "error" in result
 
     def test_dispatch_log_api_event(self):
         agent = ApiGatewayAgent(client=MagicMock())
         result = agent._dispatch_tool(
             "log_api_event",
-            {"service": "payment_service", "event_type": "success", "details": "Charge processed"},
+            {
+                "service": "payment_service",
+                "event_type": "success",
+                "details": "Charge processed",
+            },
         )
         assert isinstance(result, dict)
         assert "event_id" in result
@@ -126,17 +145,24 @@ class TestApiGatewayAgent:
 # WebhookProcessorAgent
 # ---------------------------------------------------------------------------
 
+
 class TestWebhookProcessorAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("Webhook classified as order.created and routed.")
+        client.messages.create.return_value = _make_text_response(
+            "Webhook classified as order.created and routed."
+        )
         agent = WebhookProcessorAgent(client=client)
         result = agent.run("Process incoming order webhook")
         assert isinstance(result, str)
 
     def test_tool_use_then_response(self):
         client = MagicMock()
-        payload = {"event_type": "order.created", "source": "shopify", "order_id": "ORD-1001"}
+        payload = {
+            "event_type": "order.created",
+            "source": "shopify",
+            "order_id": "ORD-1001",
+        }
         tool_resp, text_resp = _make_tool_then_text_response(
             "classify_webhook",
             {"payload": payload},
@@ -151,13 +177,17 @@ class TestWebhookProcessorAgent:
 
     def test_dispatch_classify_webhook_known_event(self):
         agent = WebhookProcessorAgent(client=MagicMock())
-        result = agent._dispatch_tool("classify_webhook", {"payload": {"event_type": "payment.received"}})
+        result = agent._dispatch_tool(
+            "classify_webhook", {"payload": {"event_type": "payment.received"}}
+        )
         assert isinstance(result, dict)
         assert result["is_known_event"] is True
 
     def test_dispatch_classify_webhook_unknown_event(self):
         agent = WebhookProcessorAgent(client=MagicMock())
-        result = agent._dispatch_tool("classify_webhook", {"payload": {"event_type": "unknown.event"}})
+        result = agent._dispatch_tool(
+            "classify_webhook", {"payload": {"event_type": "unknown.event"}}
+        )
         assert isinstance(result, dict)
         assert result["is_known_event"] is False
 
@@ -178,12 +208,16 @@ class TestWebhookProcessorAgent:
             {"event_type": "payment.received", "payload": {"amount": 500}},
         )
         webhook_id = route_result["webhook_id"]
-        ack_result = agent._dispatch_tool("acknowledge_webhook", {"webhook_id": webhook_id})
+        ack_result = agent._dispatch_tool(
+            "acknowledge_webhook", {"webhook_id": webhook_id}
+        )
         assert ack_result["status"] == "acknowledged"
 
     def test_dispatch_dead_letter(self):
         agent = WebhookProcessorAgent(client=MagicMock())
-        result = agent._dispatch_tool("dead_letter", {"webhook_id": "WH-999999", "reason": "No handler found"})
+        result = agent._dispatch_tool(
+            "dead_letter", {"webhook_id": "WH-999999", "reason": "No handler found"}
+        )
         assert isinstance(result, dict)
         assert result["status"] == "dead_lettered"
 
@@ -197,10 +231,13 @@ class TestWebhookProcessorAgent:
 # DataSyncAgent
 # ---------------------------------------------------------------------------
 
+
 class TestDataSyncAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("Sync complete: 2 records applied from Salesforce.")
+        client.messages.create.return_value = _make_text_response(
+            "Sync complete: 2 records applied from Salesforce."
+        )
         agent = DataSyncAgent(client=client)
         result = agent.run("Sync changes from Salesforce to Dynamics 365")
         assert isinstance(result, str)
@@ -232,17 +269,32 @@ class TestDataSyncAgent:
         agent = DataSyncAgent(client=MagicMock())
         result = agent._dispatch_tool(
             "get_sync_delta",
-            {"source_system": "unknown_system", "since_timestamp": "2026-06-01T00:00:00Z"},
+            {
+                "source_system": "unknown_system",
+                "since_timestamp": "2026-06-01T00:00:00Z",
+            },
         )
         assert "error" in result
 
     def test_dispatch_apply_changes(self):
         agent = DataSyncAgent(client=MagicMock())
         changes = [
-            {"record_id": "REC-001", "entity": "Contact", "operation": "update", "fields": {"email": "a@b.com"}},
-            {"record_id": "REC-002", "entity": "Lead", "operation": "create", "fields": {"name": "Test"}},
+            {
+                "record_id": "REC-001",
+                "entity": "Contact",
+                "operation": "update",
+                "fields": {"email": "a@b.com"},
+            },
+            {
+                "record_id": "REC-002",
+                "entity": "Lead",
+                "operation": "create",
+                "fields": {"name": "Test"},
+            },
         ]
-        result = agent._dispatch_tool("apply_changes", {"target_system": "dynamics365", "changes": changes})
+        result = agent._dispatch_tool(
+            "apply_changes", {"target_system": "dynamics365", "changes": changes}
+        )
         assert isinstance(result, dict)
         assert "applied" in result
 

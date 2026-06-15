@@ -1,7 +1,6 @@
 """Tests for BaseERPAgent.stream() and AsyncBaseERPAgent.astream()."""
 
 import asyncio
-import json
 from typing import Any
 from unittest.mock import MagicMock, AsyncMock
 
@@ -14,6 +13,7 @@ from agentic_erp.agents.async_base import AsyncBaseERPAgent
 # ---------------------------------------------------------------------------
 # Concrete subclasses
 # ---------------------------------------------------------------------------
+
 
 class _SyncAgent(BaseERPAgent):
     def _dispatch_tool(self, name: str, inputs: dict) -> Any:
@@ -28,6 +28,7 @@ class _AsyncAgent(AsyncBaseERPAgent):
 # ---------------------------------------------------------------------------
 # Sync stream helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_sync_stream_mock(text_chunks, stop_reason="end_turn", tool_blocks=None):
     """Build a mock that satisfies ``with client.messages.stream(...) as s``."""
@@ -58,6 +59,7 @@ def _make_sync_stream_mock(text_chunks, stop_reason="end_turn", tool_blocks=None
 # ---------------------------------------------------------------------------
 # Async stream helpers
 # ---------------------------------------------------------------------------
+
 
 class _AsyncIter:
     def __init__(self, items):
@@ -98,6 +100,7 @@ def _make_async_stream_mock(text_chunks, stop_reason="end_turn"):
 # ---------------------------------------------------------------------------
 # Sync tests
 # ---------------------------------------------------------------------------
+
 
 class TestSyncStream:
     def _make_agent(self, client):
@@ -170,6 +173,7 @@ class TestSyncStream:
 # Async tests
 # ---------------------------------------------------------------------------
 
+
 async def _collect(agent, msg):
     chunks = []
     async for chunk in agent.astream(msg):
@@ -222,7 +226,9 @@ class TestAsyncStream:
         first_stream.get_final_message = AsyncMock(return_value=first_final)
 
         # Second async stream: stop_reason=end_turn, yields "done"
-        second_client, second_stream = _make_async_stream_mock(["done"], stop_reason="end_turn")
+        second_client, second_stream = _make_async_stream_mock(
+            ["done"], stop_reason="end_turn"
+        )
 
         client = MagicMock()
         client.messages.stream.side_effect = [first_stream, second_stream]

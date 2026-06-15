@@ -14,16 +14,31 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name, e.g. accounts"},
-                "filter_expr": {"type": "string", "description": "OData $filter expression"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name, e.g. accounts",
+                },
+                "filter_expr": {
+                    "type": "string",
+                    "description": "OData $filter expression",
+                },
                 "select_cols": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Columns to include in the response",
                 },
-                "order_by": {"type": "string", "description": "OData $orderby expression"},
-                "top": {"type": "integer", "description": "Max records to return (default 50)"},
-                "expand": {"type": "string", "description": "OData $expand expression for related entities"},
+                "order_by": {
+                    "type": "string",
+                    "description": "OData $orderby expression",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Max records to return (default 50)",
+                },
+                "expand": {
+                    "type": "string",
+                    "description": "OData $expand expression for related entities",
+                },
             },
             "required": ["table"],
         },
@@ -34,8 +49,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name"},
-                "record_id": {"type": "string", "description": "Primary key GUID of the record"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name",
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "Primary key GUID of the record",
+                },
                 "select_cols": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -51,8 +72,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name"},
-                "data": {"type": "object", "description": "Field values for the new record"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name",
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Field values for the new record",
+                },
             },
             "required": ["table", "data"],
         },
@@ -63,9 +90,18 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name"},
-                "record_id": {"type": "string", "description": "Primary key GUID of the record to update"},
-                "data": {"type": "object", "description": "Fields to update on the record"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name",
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "Primary key GUID of the record to update",
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Fields to update on the record",
+                },
             },
             "required": ["table", "record_id", "data"],
         },
@@ -76,10 +112,22 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name"},
-                "alternate_key": {"type": "string", "description": "Alternate key field name"},
-                "key_value": {"type": "string", "description": "Value of the alternate key"},
-                "data": {"type": "object", "description": "Field values to set on the record"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name",
+                },
+                "alternate_key": {
+                    "type": "string",
+                    "description": "Alternate key field name",
+                },
+                "key_value": {
+                    "type": "string",
+                    "description": "Value of the alternate key",
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Field values to set on the record",
+                },
             },
             "required": ["table", "alternate_key", "key_value", "data"],
         },
@@ -90,8 +138,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (plural) name"},
-                "record_id": {"type": "string", "description": "Primary key GUID of the record to delete"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (plural) name",
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "Primary key GUID of the record to delete",
+                },
             },
             "required": ["table", "record_id"],
         },
@@ -102,13 +156,34 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Primary table (plural) name"},
-                "record_id": {"type": "string", "description": "Primary key GUID of the primary record"},
-                "relationship": {"type": "string", "description": "Relationship name (e.g. account_contacts)"},
-                "related_table": {"type": "string", "description": "Related table (plural) name"},
-                "related_id": {"type": "string", "description": "Primary key GUID of the related record"},
+                "table": {
+                    "type": "string",
+                    "description": "Primary table (plural) name",
+                },
+                "record_id": {
+                    "type": "string",
+                    "description": "Primary key GUID of the primary record",
+                },
+                "relationship": {
+                    "type": "string",
+                    "description": "Relationship name (e.g. account_contacts)",
+                },
+                "related_table": {
+                    "type": "string",
+                    "description": "Related table (plural) name",
+                },
+                "related_id": {
+                    "type": "string",
+                    "description": "Primary key GUID of the related record",
+                },
             },
-            "required": ["table", "record_id", "relationship", "related_table", "related_id"],
+            "required": [
+                "table",
+                "record_id",
+                "relationship",
+                "related_table",
+                "related_id",
+            ],
         },
     },
     {
@@ -117,7 +192,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Root entity (plural) table name"},
+                "table": {
+                    "type": "string",
+                    "description": "Root entity (plural) table name",
+                },
                 "fetch_xml": {"type": "string", "description": "FetchXML query string"},
             },
             "required": ["table", "fetch_xml"],
@@ -178,7 +256,9 @@ class DataverseAgent(BaseERPAgent):
             case "create_record":
                 return self._dv.create(inputs["table"], inputs["data"])
             case "update_record":
-                return self._dv.update(inputs["table"], inputs["record_id"], inputs["data"])
+                return self._dv.update(
+                    inputs["table"], inputs["record_id"], inputs["data"]
+                )
             case "upsert_record":
                 return self._dv.upsert(
                     inputs["table"],

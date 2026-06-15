@@ -2,14 +2,14 @@
 
 import time
 
-import pytest
 
-from agentic_erp.cache.response_cache import CacheEntry, ResponseCache
+from agentic_erp.cache.response_cache import ResponseCache
 
 
 # ---------------------------------------------------------------------------
 # TestResponseCacheBasic
 # ---------------------------------------------------------------------------
+
 
 class TestResponseCacheBasic:
     def test_get_returns_none_for_missing_key(self):
@@ -75,6 +75,7 @@ class TestResponseCacheBasic:
 # TestResponseCacheStats
 # ---------------------------------------------------------------------------
 
+
 class TestResponseCacheStats:
     def test_hit_increments_hits(self):
         cache = ResponseCache()
@@ -95,15 +96,16 @@ class TestResponseCacheStats:
         cache = ResponseCache()
         cache.set("a", 1)
         cache.set("b", 2)
-        cache.get("a")   # hit
-        cache.get("b")   # hit
-        cache.get("c")   # miss
+        cache.get("a")  # hit
+        cache.get("b")  # hit
+        cache.get("c")  # miss
         assert abs(cache.hit_rate - 2 / 3) < 1e-9
 
 
 # ---------------------------------------------------------------------------
 # TestResponseCacheHelpers
 # ---------------------------------------------------------------------------
+
 
 class TestResponseCacheHelpers:
     def test_make_key_deterministic(self):
@@ -112,15 +114,19 @@ class TestResponseCacheHelpers:
         assert key1 == key2
 
     def test_make_key_different_args_differ(self):
-        key1 = ResponseCache.make_key("a",)
-        key2 = ResponseCache.make_key("b",)
+        key1 = ResponseCache.make_key(
+            "a",
+        )
+        key2 = ResponseCache.make_key(
+            "b",
+        )
         assert key1 != key2
 
     def test_clear_resets_stats_and_store(self):
         cache = ResponseCache()
         cache.set("x", 1)
-        cache.get("x")      # hit
-        cache.get("y")      # miss
+        cache.get("x")  # hit
+        cache.get("y")  # miss
         cache.clear()
         assert cache.size == 0
         assert cache.stats["hits"] == 0
@@ -130,6 +136,7 @@ class TestResponseCacheHelpers:
 # ---------------------------------------------------------------------------
 # TestResponseCacheCustomTTL
 # ---------------------------------------------------------------------------
+
 
 class TestResponseCacheCustomTTL:
     def test_custom_ttl_per_entry(self):

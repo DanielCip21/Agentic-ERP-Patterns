@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -17,6 +16,7 @@ from agentic_erp.server.deps import ServerState
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_orchestrator(platforms=("salesforce", "dynamics365")):
     orch = MagicMock()
@@ -33,9 +33,10 @@ def _make_mock_orchestrator(platforms=("salesforce", "dynamics365")):
 
 def _async_return(value):
     """Return an async mock that resolves to *value*."""
-    import asyncio
+
     async def _coro(*args, **kwargs):
         return value
+
     return _coro
 
 
@@ -57,13 +58,16 @@ def app(server_state):
 
 @pytest.fixture
 async def client(app):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
 # ---------------------------------------------------------------------------
 # Health endpoint
 # ---------------------------------------------------------------------------
+
 
 class TestHealthEndpoint:
     @pytest.mark.asyncio
@@ -97,6 +101,7 @@ class TestHealthEndpoint:
 # Cache endpoints
 # ---------------------------------------------------------------------------
 
+
 class TestCacheEndpoints:
     @pytest.mark.asyncio
     async def test_stats_returns_200(self, client):
@@ -127,6 +132,7 @@ class TestCacheEndpoints:
 # Agent endpoints — /agents/{platform}/run
 # ---------------------------------------------------------------------------
 
+
 class TestAgentRunEndpoint:
     @pytest.mark.asyncio
     async def test_run_returns_200(self, client):
@@ -137,9 +143,9 @@ class TestAgentRunEndpoint:
 
     @pytest.mark.asyncio
     async def test_run_response_shape(self, client):
-        data = (await client.post(
-            "/agents/salesforce/run", json={"message": "List leads"}
-        )).json()
+        data = (
+            await client.post("/agents/salesforce/run", json={"message": "List leads"})
+        ).json()
         assert data["platform"] == "salesforce"
         assert data["result"] == "platform response"
         assert "duration_ms" in data
@@ -151,16 +157,14 @@ class TestAgentRunEndpoint:
 
     @pytest.mark.asyncio
     async def test_run_unknown_platform_returns_404(self, client):
-        resp = await client.post(
-            "/agents/unknown/run", json={"message": "test"}
-        )
+        resp = await client.post("/agents/unknown/run", json={"message": "test"})
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
     async def test_run_404_detail_lists_available(self, client):
-        data = (await client.post(
-            "/agents/unknown/run", json={"message": "test"}
-        )).json()
+        data = (
+            await client.post("/agents/unknown/run", json={"message": "test"})
+        ).json()
         assert "salesforce" in data["detail"] or "dynamics365" in data["detail"]
 
     @pytest.mark.asyncio
@@ -180,29 +184,24 @@ class TestAgentRunEndpoint:
 # Agent endpoints — /agents/{platform}/stream
 # ---------------------------------------------------------------------------
 
+
 class TestAgentStreamEndpoint:
     @pytest.mark.asyncio
     async def test_stream_returns_200(self, client, mock_orchestrator):
         mock_orchestrator.stream_platform.return_value = iter(["Hello", " world"])
-        resp = await client.post(
-            "/agents/salesforce/stream", json={"message": "go"}
-        )
+        resp = await client.post("/agents/salesforce/stream", json={"message": "go"})
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
     async def test_stream_content_type_is_sse(self, client, mock_orchestrator):
         mock_orchestrator.stream_platform.return_value = iter(["chunk"])
-        resp = await client.post(
-            "/agents/salesforce/stream", json={"message": "go"}
-        )
+        resp = await client.post("/agents/salesforce/stream", json={"message": "go"})
         assert "text/event-stream" in resp.headers["content-type"]
 
     @pytest.mark.asyncio
     async def test_stream_yields_data_events(self, client, mock_orchestrator):
         mock_orchestrator.stream_platform.return_value = iter(["Hello", " world"])
-        resp = await client.post(
-            "/agents/salesforce/stream", json={"message": "go"}
-        )
+        resp = await client.post("/agents/salesforce/stream", json={"message": "go"})
         text = resp.text
         assert 'data: {"text": "Hello"}' in text
         assert 'data: {"text": " world"}' in text
@@ -210,22 +209,19 @@ class TestAgentStreamEndpoint:
     @pytest.mark.asyncio
     async def test_stream_ends_with_done(self, client, mock_orchestrator):
         mock_orchestrator.stream_platform.return_value = iter(["x"])
-        resp = await client.post(
-            "/agents/salesforce/stream", json={"message": "go"}
-        )
+        resp = await client.post("/agents/salesforce/stream", json={"message": "go"})
         assert "data: [DONE]" in resp.text
 
     @pytest.mark.asyncio
     async def test_stream_unknown_platform_returns_404(self, client):
-        resp = await client.post(
-            "/agents/nobody/stream", json={"message": "go"}
-        )
+        resp = await client.post("/agents/nobody/stream", json={"message": "go"})
         assert resp.status_code == 404
 
 
 # ---------------------------------------------------------------------------
 # Orchestrator endpoints
 # ---------------------------------------------------------------------------
+
 
 class TestOrchestratorRunEndpoint:
     @pytest.mark.asyncio
@@ -237,9 +233,11 @@ class TestOrchestratorRunEndpoint:
 
     @pytest.mark.asyncio
     async def test_run_response_shape(self, client):
-        data = (await client.post(
-            "/orchestrator/run", json={"task": "List all open orders"}
-        )).json()
+        data = (
+            await client.post(
+                "/orchestrator/run", json={"task": "List all open orders"}
+            )
+        ).json()
         assert "results" in data
         assert "platforms" in data
         assert "duration_ms" in data
@@ -248,9 +246,11 @@ class TestOrchestratorRunEndpoint:
     async def test_run_parallel_uses_run_async(self, client, mock_orchestrator):
         # Track calls via a flag
         called = {}
+
         async def _fake_run_async(task):
             called["async"] = True
             return {"salesforce": "ok"}
+
         mock_orchestrator.run_async = _fake_run_async
 
         await client.post("/orchestrator/run", json={"task": "test", "parallel": True})
@@ -259,9 +259,11 @@ class TestOrchestratorRunEndpoint:
     @pytest.mark.asyncio
     async def test_run_sequential_uses_run_sync(self, client, mock_orchestrator):
         called = {}
+
         def _fake_run(task):
             called["sync"] = True
             return {"salesforce": "ok"}
+
         mock_orchestrator.run = _fake_run
 
         await client.post("/orchestrator/run", json={"task": "test", "parallel": False})
@@ -283,18 +285,22 @@ class TestOrchestratorSynthesizeEndpoint:
 
     @pytest.mark.asyncio
     async def test_synthesize_response_shape(self, client):
-        data = (await client.post(
-            "/orchestrator/synthesize", json={"task": "Compare CRM data"}
-        )).json()
+        data = (
+            await client.post(
+                "/orchestrator/synthesize", json={"task": "Compare CRM data"}
+            )
+        ).json()
         assert "result" in data
         assert "platform_results" in data
         assert "duration_ms" in data
 
     @pytest.mark.asyncio
     async def test_synthesize_result_is_synthesized(self, client):
-        data = (await client.post(
-            "/orchestrator/synthesize", json={"task": "Compare CRM data"}
-        )).json()
+        data = (
+            await client.post(
+                "/orchestrator/synthesize", json={"task": "Compare CRM data"}
+            )
+        ).json()
         assert data["result"] == "synthesized"
 
 
@@ -302,14 +308,17 @@ class TestOrchestratorSynthesizeEndpoint:
 # ServerState / app factory
 # ---------------------------------------------------------------------------
 
+
 class TestAppFactory:
     def test_create_app_sets_state(self, server_state):
         from agentic_erp.server.app import create_app
+
         a = create_app(server_state)
         assert a.state.server_state is server_state
 
     def test_create_app_registers_health_route(self, server_state):
         from agentic_erp.server.app import create_app
+
         a = create_app(server_state)
         # url_path_for confirms the named route exists
         path = a.url_path_for("health")

@@ -3,13 +3,34 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from typing import Any
 
 _INVOICES: dict[str, dict] = {
-    "INV-2001": {"id": "INV-2001", "customer": "Contoso Ltd", "amount": 12500.00, "due_date": "2026-05-15", "status": "overdue", "days_overdue": 29},
-    "INV-2002": {"id": "INV-2002", "customer": "Fabrikam Inc", "amount": 4300.00, "due_date": "2026-06-01", "status": "overdue", "days_overdue": 12},
-    "INV-2003": {"id": "INV-2003", "customer": "Northwind", "amount": 8900.00, "due_date": "2026-06-20", "status": "open", "days_overdue": 0},
+    "INV-2001": {
+        "id": "INV-2001",
+        "customer": "Contoso Ltd",
+        "amount": 12500.00,
+        "due_date": "2026-05-15",
+        "status": "overdue",
+        "days_overdue": 29,
+    },
+    "INV-2002": {
+        "id": "INV-2002",
+        "customer": "Fabrikam Inc",
+        "amount": 4300.00,
+        "due_date": "2026-06-01",
+        "status": "overdue",
+        "days_overdue": 12,
+    },
+    "INV-2003": {
+        "id": "INV-2003",
+        "customer": "Northwind",
+        "amount": 8900.00,
+        "due_date": "2026-06-20",
+        "status": "open",
+        "days_overdue": 0,
+    },
 }
 
 _PAYMENTS: list[dict] = []
@@ -23,17 +44,29 @@ _EXPENSE_CATEGORIES = {
 }
 
 _ACCOUNTS: dict[str, dict] = {
-    "ACC-1001": {"id": "ACC-1001", "name": "Accounts Receivable", "balance": 25700.00, "currency": "USD"},
-    "ACC-1002": {"id": "ACC-1002", "name": "Accounts Payable", "balance": -8200.00, "currency": "USD"},
-    "ACC-1003": {"id": "ACC-1003", "name": "Operating Expenses", "balance": -45000.00, "currency": "USD"},
+    "ACC-1001": {
+        "id": "ACC-1001",
+        "name": "Accounts Receivable",
+        "balance": 25700.00,
+        "currency": "USD",
+    },
+    "ACC-1002": {
+        "id": "ACC-1002",
+        "name": "Accounts Payable",
+        "balance": -8200.00,
+        "currency": "USD",
+    },
+    "ACC-1003": {
+        "id": "ACC-1003",
+        "name": "Operating Expenses",
+        "balance": -45000.00,
+        "currency": "USD",
+    },
 }
 
 
 def list_outstanding_invoices(days_overdue: int = 0) -> list[dict[str, Any]]:
-    return [
-        inv for inv in _INVOICES.values()
-        if inv["days_overdue"] >= days_overdue
-    ]
+    return [inv for inv in _INVOICES.values() if inv["days_overdue"] >= days_overdue]
 
 
 def categorize_expense(description: str, amount: float) -> dict[str, Any]:

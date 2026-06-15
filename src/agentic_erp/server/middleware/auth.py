@@ -12,13 +12,15 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 # Paths that skip auth checks (documentation + health).
-_DEFAULT_EXEMPT: frozenset[str] = frozenset({
-    "/health",
-    "/docs",
-    "/redoc",
-    "/openapi.json",
-    "/docs/oauth2-redirect",
-})
+_DEFAULT_EXEMPT: frozenset[str] = frozenset(
+    {
+        "/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/docs/oauth2-redirect",
+    }
+)
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):

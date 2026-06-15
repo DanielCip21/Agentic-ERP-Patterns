@@ -16,7 +16,9 @@ class ServerState:
     """Holds shared singletons injected into every request handler."""
 
     orchestrator: LivePlatformOrchestrator
-    cache: ResponseCache = field(default_factory=lambda: ResponseCache(default_ttl=300.0))
+    cache: ResponseCache = field(
+        default_factory=lambda: ResponseCache(default_ttl=300.0)
+    )
     tracer: Tracer = field(default_factory=Tracer)
 
 

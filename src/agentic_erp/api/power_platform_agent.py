@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from agentic_erp.agents.base import BaseERPAgent
-from agentic_erp.connectors.power_platform import PowerPlatformConfig, PowerPlatformConnector
+from agentic_erp.connectors.power_platform import (
+    PowerPlatformConfig,
+    PowerPlatformConnector,
+)
 
 _TOOLS = [
     {
@@ -22,7 +25,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "flow_id": {"type": "string", "description": "The GUID of the Power Automate flow to trigger"},
+                "flow_id": {
+                    "type": "string",
+                    "description": "The GUID of the Power Automate flow to trigger",
+                },
                 "payload": {
                     "type": "object",
                     "description": "JSON body to send as the flow trigger input",
@@ -38,8 +44,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "flow_id": {"type": "string", "description": "The GUID of the Power Automate flow"},
-                "run_id": {"type": "string", "description": "The run ID returned when the flow was triggered"},
+                "flow_id": {
+                    "type": "string",
+                    "description": "The GUID of the Power Automate flow",
+                },
+                "run_id": {
+                    "type": "string",
+                    "description": "The run ID returned when the flow was triggered",
+                },
             },
             "required": ["flow_id", "run_id"],
         },
@@ -50,8 +62,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "flow_id": {"type": "string", "description": "The GUID of the Power Automate flow"},
-                "top": {"type": "integer", "description": "Maximum number of runs to return (default 20)"},
+                "flow_id": {
+                    "type": "string",
+                    "description": "The GUID of the Power Automate flow",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Maximum number of runs to return (default 20)",
+                },
             },
             "required": ["flow_id"],
         },
@@ -62,14 +80,23 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (entity set) name"},
-                "filter_expr": {"type": "string", "description": "OData $filter expression (e.g. statecode eq 0)"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (entity set) name",
+                },
+                "filter_expr": {
+                    "type": "string",
+                    "description": "OData $filter expression (e.g. statecode eq 0)",
+                },
                 "select_cols": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "List of column names to return ($select)",
                 },
-                "top": {"type": "integer", "description": "Maximum number of rows to return"},
+                "top": {
+                    "type": "integer",
+                    "description": "Maximum number of rows to return",
+                },
             },
             "required": ["table"],
         },
@@ -80,7 +107,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (entity set) name"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (entity set) name",
+                },
                 "data": {
                     "type": "object",
                     "description": "Field values for the new record",
@@ -96,8 +126,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "table": {"type": "string", "description": "Dataverse table (entity set) name"},
-                "row_id": {"type": "string", "description": "GUID of the row to update"},
+                "table": {
+                    "type": "string",
+                    "description": "Dataverse table (entity set) name",
+                },
+                "row_id": {
+                    "type": "string",
+                    "description": "GUID of the row to update",
+                },
                 "data": {
                     "type": "object",
                     "description": "Fields to update on the record",
@@ -165,6 +201,8 @@ class PowerPlatformAgent(BaseERPAgent):
             case "create_dataverse_row":
                 return self._pp.create_dataverse_row(inputs["table"], inputs["data"])
             case "update_dataverse_row":
-                return self._pp.update_dataverse_row(inputs["table"], inputs["row_id"], inputs["data"])
+                return self._pp.update_dataverse_row(
+                    inputs["table"], inputs["row_id"], inputs["data"]
+                )
             case _:
                 return {"error": f"Unknown tool: {name}"}

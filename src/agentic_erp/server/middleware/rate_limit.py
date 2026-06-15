@@ -96,9 +96,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in self._exempt_paths:
             return await call_next(request)
 
-        key = (
-            request.headers.get("X-API-Key")
-            or (request.client.host if request.client else "unknown")
+        key = request.headers.get("X-API-Key") or (
+            request.client.host if request.client else "unknown"
         )
         allowed, remaining = self._limiter.is_allowed(key)
 

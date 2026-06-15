@@ -8,14 +8,44 @@ from typing import Any
 
 
 _ORDERS: dict[str, dict] = {
-    "ORD-001": {"id": "ORD-001", "customer": "Contoso Ltd", "status": "pending", "total": 4200.00, "items": [{"sku": "SKU-A", "qty": 10}]},
-    "ORD-002": {"id": "ORD-002", "customer": "Fabrikam Inc", "status": "processing", "total": 1850.50, "items": [{"sku": "SKU-B", "qty": 5}]},
+    "ORD-001": {
+        "id": "ORD-001",
+        "customer": "Contoso Ltd",
+        "status": "pending",
+        "total": 4200.00,
+        "items": [{"sku": "SKU-A", "qty": 10}],
+    },
+    "ORD-002": {
+        "id": "ORD-002",
+        "customer": "Fabrikam Inc",
+        "status": "processing",
+        "total": 1850.50,
+        "items": [{"sku": "SKU-B", "qty": 5}],
+    },
 }
 
 _INVENTORY: dict[str, dict] = {
-    "SKU-A": {"sku": "SKU-A", "name": "Widget Alpha", "on_hand": 45, "reorder_point": 20, "reorder_qty": 100},
-    "SKU-B": {"sku": "SKU-B", "name": "Gadget Beta", "on_hand": 8, "reorder_point": 15, "reorder_qty": 50},
-    "SKU-C": {"sku": "SKU-C", "name": "Component Gamma", "on_hand": 120, "reorder_point": 30, "reorder_qty": 200},
+    "SKU-A": {
+        "sku": "SKU-A",
+        "name": "Widget Alpha",
+        "on_hand": 45,
+        "reorder_point": 20,
+        "reorder_qty": 100,
+    },
+    "SKU-B": {
+        "sku": "SKU-B",
+        "name": "Gadget Beta",
+        "on_hand": 8,
+        "reorder_point": 15,
+        "reorder_qty": 50,
+    },
+    "SKU-C": {
+        "sku": "SKU-C",
+        "name": "Component Gamma",
+        "on_hand": 120,
+        "reorder_point": 30,
+        "reorder_qty": 200,
+    },
 }
 
 _PURCHASE_ORDERS: list[dict] = []
@@ -35,7 +65,11 @@ def update_order_status(order_id: str, status: str) -> dict[str, Any]:
     if order_id not in _ORDERS:
         return {"error": f"Order {order_id} not found"}
     _ORDERS[order_id]["status"] = status
-    return {"order_id": order_id, "status": status, "updated_at": datetime.utcnow().isoformat()}
+    return {
+        "order_id": order_id,
+        "status": status,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
 
 
 def check_inventory(sku: str) -> dict[str, Any]:
@@ -53,7 +87,9 @@ def list_low_stock_items() -> list[dict[str, Any]]:
     ]
 
 
-def create_purchase_order(sku: str, quantity: int, supplier: str = "Default Supplier") -> dict[str, Any]:
+def create_purchase_order(
+    sku: str, quantity: int, supplier: str = "Default Supplier"
+) -> dict[str, Any]:
     if sku not in _INVENTORY:
         return {"error": f"SKU {sku} not found"}
     po = {
@@ -61,7 +97,9 @@ def create_purchase_order(sku: str, quantity: int, supplier: str = "Default Supp
         "sku": sku,
         "quantity": quantity,
         "supplier": supplier,
-        "estimated_delivery": (datetime.utcnow() + timedelta(days=7)).date().isoformat(),
+        "estimated_delivery": (datetime.utcnow() + timedelta(days=7))
+        .date()
+        .isoformat(),
         "status": "submitted",
     }
     _PURCHASE_ORDERS.append(po)

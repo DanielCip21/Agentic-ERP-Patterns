@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import time
 
 import httpx
 import pytest
@@ -78,20 +76,23 @@ def _mock_token(router: respx.MockRouter) -> None:
 # AzureADTokenManager tests
 # ---------------------------------------------------------------------------
 
+
 class TestAzureADTokenManager:
     @respx.mock
     def test_fetch_token_success(self):
         respx.post("https://login.microsoftonline.com/t1/oauth2/v2.0/token").mock(
             return_value=httpx.Response(200, json=TOKEN_RESPONSE)
         )
-        token = AzureADTokenManager.get_token("t1", "c1", "s1", "https://org.crm/.default")
+        token = AzureADTokenManager.get_token(
+            "t1", "c1", "s1", "https://org.crm/.default"
+        )
         assert token == "fake-access-token-abc123"
 
     @respx.mock
     def test_token_cached_on_second_call(self):
-        route = respx.post("https://login.microsoftonline.com/t1/oauth2/v2.0/token").mock(
-            return_value=httpx.Response(200, json=TOKEN_RESPONSE)
-        )
+        route = respx.post(
+            "https://login.microsoftonline.com/t1/oauth2/v2.0/token"
+        ).mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
         AzureADTokenManager.get_token("t1", "c1", "s1", "https://org.crm/.default")
         AzureADTokenManager.get_token("t1", "c1", "s1", "https://org.crm/.default")
         assert route.call_count == 1  # second call hit cache
@@ -106,7 +107,9 @@ class TestAzureADTokenManager:
 
     @respx.mock
     def test_expired_token_refreshed(self):
-        route = respx.post("https://login.microsoftonline.com/t1/oauth2/v2.0/token").mock(
+        route = respx.post(
+            "https://login.microsoftonline.com/t1/oauth2/v2.0/token"
+        ).mock(
             return_value=httpx.Response(200, json={**TOKEN_RESPONSE, "expires_in": 0})
         )
         AzureADTokenManager.get_token("t1", "c1", "s1", "https://org.crm/.default")
@@ -118,13 +121,14 @@ class TestAzureADTokenManager:
 # Dynamics365Connector — happy path
 # ---------------------------------------------------------------------------
 
+
 class TestDynamics365ConnectorHappyPath:
     @respx.mock
     def test_get_account(self, connector):
         _mock_token(respx)
-        respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)").mock(
-            return_value=httpx.Response(200, json=ACCOUNT_RESPONSE)
-        )
+        respx.get(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)"
+        ).mock(return_value=httpx.Response(200, json=ACCOUNT_RESPONSE))
         result = connector.get_account("ACC-001")
         assert result["accountid"] == "ACC-001"
         assert result["name"] == "Contoso Ltd"
@@ -142,9 +146,9 @@ class TestDynamics365ConnectorHappyPath:
     @respx.mock
     def test_get_sales_order(self, connector):
         _mock_token(respx)
-        respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/salesorders(ORD-001)").mock(
-            return_value=httpx.Response(200, json=ORDER_RESPONSE)
-        )
+        respx.get(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/salesorders(ORD-001)"
+        ).mock(return_value=httpx.Response(200, json=ORDER_RESPONSE))
         result = connector.get_sales_order("ORD-001")
         assert result["salesorderid"] == "ORD-001"
         assert result["totalamount"] == 12500.0
@@ -162,16 +166,22 @@ class TestDynamics365ConnectorHappyPath:
     @respx.mock
     def test_update_sales_order_returns_no_content(self, connector):
         _mock_token(respx)
-        respx.patch("https://testorg.crm.dynamics.com/api/data/v9.2/salesorders(ORD-001)").mock(
-            return_value=httpx.Response(204)
+        respx.patch(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/salesorders(ORD-001)"
+        ).mock(return_value=httpx.Response(204))
+        result = connector.update_sales_order(
+            "ORD-001", {"statecode": 1, "statuscode": 3}
         )
-        result = connector.update_sales_order("ORD-001", {"statecode": 1, "statuscode": 3})
         assert result == {"status": "no_content"}
 
     @respx.mock
     def test_create_lead(self, connector):
         _mock_token(respx)
-        lead_response = {"leadid": "LEAD-001", "lastname": "Smith", "companyname": "Acme"}
+        lead_response = {
+            "leadid": "LEAD-001",
+            "lastname": "Smith",
+            "companyname": "Acme",
+        }
         respx.post("https://testorg.crm.dynamics.com/api/data/v9.2/leads").mock(
             return_value=httpx.Response(201, json=lead_response)
         )
@@ -181,7 +191,11 @@ class TestDynamics365ConnectorHappyPath:
     @respx.mock
     def test_create_contact(self, connector):
         _mock_token(respx)
-        contact_response = {"contactid": "CON-001", "firstname": "Alice", "lastname": "Jones"}
+        contact_response = {
+            "contactid": "CON-001",
+            "firstname": "Alice",
+            "lastname": "Jones",
+        }
         respx.post("https://testorg.crm.dynamics.com/api/data/v9.2/contacts").mock(
             return_value=httpx.Response(201, json=contact_response)
         )
@@ -193,12 +207,17 @@ class TestDynamics365ConnectorHappyPath:
 # Dynamics365Connector — error handling
 # ---------------------------------------------------------------------------
 
+
 class TestDynamics365ConnectorErrors:
     @respx.mock
     def test_404_raises_not_found_error(self, connector):
         _mock_token(respx)
-        respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/accounts(MISSING)").mock(
-            return_value=httpx.Response(404, json={"error": {"code": "0x80040217", "message": "Not found"}})
+        respx.get(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/accounts(MISSING)"
+        ).mock(
+            return_value=httpx.Response(
+                404, json={"error": {"code": "0x80040217", "message": "Not found"}}
+            )
         )
         with pytest.raises(NotFoundError):
             connector.get_account("MISSING")
@@ -207,27 +226,27 @@ class TestDynamics365ConnectorErrors:
     def test_429_raises_rate_limit_error(self, connector):
         _mock_token(respx)
         # Return 429 on all retries
-        respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)").mock(
-            return_value=httpx.Response(429, headers={"Retry-After": "5"})
-        )
+        respx.get(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)"
+        ).mock(return_value=httpx.Response(429, headers={"Retry-After": "5"}))
         with pytest.raises(RateLimitError):
             connector.get_account("ACC-001")
 
     @respx.mock
     def test_500_raises_connector_error(self, connector):
         _mock_token(respx)
-        respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)").mock(
-            return_value=httpx.Response(500, text="Internal Server Error")
-        )
+        respx.get(
+            "https://testorg.crm.dynamics.com/api/data/v9.2/accounts(ACC-001)"
+        ).mock(return_value=httpx.Response(500, text="Internal Server Error"))
         with pytest.raises(ConnectorError) as exc_info:
             connector.get_account("ACC-001")
         assert exc_info.value.status_code == 500
 
     @respx.mock
     def test_auth_error_propagates(self, connector):
-        respx.post("https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token").mock(
-            return_value=httpx.Response(401, json={"error": "invalid_client"})
-        )
+        respx.post(
+            "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token"
+        ).mock(return_value=httpx.Response(401, json={"error": "invalid_client"}))
         with pytest.raises(AuthenticationError):
             connector.get_account("ACC-001")
 
@@ -236,6 +255,7 @@ class TestDynamics365ConnectorErrors:
 # Dynamics365OrderAgent integration test
 # ---------------------------------------------------------------------------
 
+
 class TestDynamics365OrderAgent:
     @respx.mock
     def test_agent_calls_list_orders_tool(self):
@@ -243,9 +263,9 @@ class TestDynamics365OrderAgent:
         from agentic_erp.erp.dynamics365_order_agent import Dynamics365OrderAgent
 
         # Mock token + orders API
-        respx.post("https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token").mock(
-            return_value=httpx.Response(200, json=TOKEN_RESPONSE)
-        )
+        respx.post(
+            "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token"
+        ).mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
         respx.get("https://testorg.crm.dynamics.com/api/data/v9.2/salesorders").mock(
             return_value=httpx.Response(200, json=ORDERS_LIST_RESPONSE)
         )

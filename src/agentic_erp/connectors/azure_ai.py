@@ -17,9 +17,9 @@ class AzureAIConfig(BaseModel):
     For Doc Intelligence: uses the same endpoint with a different path
     """
 
-    endpoint: str            # e.g. https://myresource.openai.azure.com
+    endpoint: str  # e.g. https://myresource.openai.azure.com
     api_key: str
-    deployment_name: str     # e.g. gpt-4o  or  text-embedding-3-large
+    deployment_name: str  # e.g. gpt-4o  or  text-embedding-3-large
     api_version: str = "2024-12-01-preview"
 
     # Azure AI Search (optional)
@@ -87,7 +87,12 @@ class AzureAIConnector:
         path = f"openai/deployments/{self.config.deployment_name}/chat/completions"
         return self._oai._post(
             path,
-            json={"messages": messages, "max_tokens": max_tokens, "temperature": temperature, **kwargs},
+            json={
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                **kwargs,
+            },
         )
 
     # --- Azure OpenAI — Embeddings --------------------------------------------
@@ -113,7 +118,6 @@ class AzureAIConnector:
         For async usage, call analyze_document_async + poll_analyze_result separately.
         """
         path = f"documentintelligence/documentModels/{model_id}:analyze"
-        params = {"api-version": self.config.doc_intel_api_version}
         response = self._oai._post(path, json={"urlSource": document_url})
         # If 202 Accepted, poll the operation-location header
         return response
@@ -164,7 +168,12 @@ class AzureAIConnector:
             f"indexes/{index_name}/docs/search",
             json={
                 "vectorQueries": [
-                    {"kind": "vector", "vector": vector, "fields": vector_field, "k": top_k}
+                    {
+                        "kind": "vector",
+                        "vector": vector,
+                        "fields": vector_field,
+                        "k": top_k,
+                    }
                 ]
             },
         )
@@ -183,5 +192,7 @@ class AzureAIConnector:
             raise ValueError("search_endpoint not configured in AzureAIConfig")
         return self._search._post(
             f"indexes/{index_name}/docs/index",
-            json={"value": [{"@search.action": "mergeOrUpload", **d} for d in documents]},
+            json={
+                "value": [{"@search.action": "mergeOrUpload", **d} for d in documents]
+            },
         )

@@ -12,16 +12,40 @@ from agentic_erp.agents.base import BaseERPAgent
 # ---------------------------------------------------------------------------
 _FEEDBACK_BATCHES: dict[str, list[dict]] = {
     "support_tickets": [
-        {"id": "FB-001", "text": "The onboarding was seamless and the team was incredibly helpful!", "source": "support_tickets"},
-        {"id": "FB-002", "text": "Waited 3 days for a response. Totally unacceptable service.", "source": "support_tickets"},
-        {"id": "FB-003", "text": "Product works fine but documentation could be clearer.", "source": "support_tickets"},
+        {
+            "id": "FB-001",
+            "text": "The onboarding was seamless and the team was incredibly helpful!",
+            "source": "support_tickets",
+        },
+        {
+            "id": "FB-002",
+            "text": "Waited 3 days for a response. Totally unacceptable service.",
+            "source": "support_tickets",
+        },
+        {
+            "id": "FB-003",
+            "text": "Product works fine but documentation could be clearer.",
+            "source": "support_tickets",
+        },
     ],
     "nps_survey": [
-        {"id": "FB-004", "text": "Love the new dashboard. Makes reporting so much easier.", "source": "nps_survey"},
-        {"id": "FB-005", "text": "Integration broke after the last update. Lost 2 hours of work.", "source": "nps_survey"},
+        {
+            "id": "FB-004",
+            "text": "Love the new dashboard. Makes reporting so much easier.",
+            "source": "nps_survey",
+        },
+        {
+            "id": "FB-005",
+            "text": "Integration broke after the last update. Lost 2 hours of work.",
+            "source": "nps_survey",
+        },
     ],
     "reviews": [
-        {"id": "FB-006", "text": "Great value for money. Would recommend to any SMB.", "source": "reviews"},
+        {
+            "id": "FB-006",
+            "text": "Great value for money. Would recommend to any SMB.",
+            "source": "reviews",
+        },
     ],
 }
 
@@ -32,14 +56,38 @@ _ESCALATIONS: list[dict] = []
 def _get_feedback_batch(source: str, limit: int = 10) -> dict[str, Any]:
     batch = _FEEDBACK_BATCHES.get(source)
     if batch is None:
-        return {"error": f"Feedback source '{source}' not found. Available: {list(_FEEDBACK_BATCHES.keys())}"}
+        return {
+            "error": f"Feedback source '{source}' not found. Available: {list(_FEEDBACK_BATCHES.keys())}"
+        }
     return {"source": source, "feedback": batch[:limit], "total": len(batch)}
 
 
 def _analyze_sentiment(text: str) -> dict[str, Any]:
     text_lower = text.lower()
-    positive_words = {"great", "love", "excellent", "helpful", "seamless", "easy", "good", "recommend", "faster", "amazing"}
-    negative_words = {"unacceptable", "broke", "lost", "waited", "terrible", "awful", "broken", "issue", "problem", "bad"}
+    positive_words = {
+        "great",
+        "love",
+        "excellent",
+        "helpful",
+        "seamless",
+        "easy",
+        "good",
+        "recommend",
+        "faster",
+        "amazing",
+    }
+    negative_words = {
+        "unacceptable",
+        "broke",
+        "lost",
+        "waited",
+        "terrible",
+        "awful",
+        "broken",
+        "issue",
+        "problem",
+        "bad",
+    }
     pos = sum(1 for w in positive_words if w in text_lower)
     neg = sum(1 for w in negative_words if w in text_lower)
     if neg > pos:
@@ -51,11 +99,20 @@ def _analyze_sentiment(text: str) -> dict[str, Any]:
     else:
         sentiment = "neutral"
         score = 0.0
-    return {"text": text[:100], "sentiment": sentiment, "score": round(score, 2), "analyzed_at": datetime.utcnow().isoformat()}
+    return {
+        "text": text[:100],
+        "sentiment": sentiment,
+        "score": round(score, 2),
+        "analyzed_at": datetime.utcnow().isoformat(),
+    }
 
 
 def _tag_feedback(feedback_id: str, tags: list[str]) -> dict[str, Any]:
-    _TAGGED_FEEDBACK[feedback_id] = {"feedback_id": feedback_id, "tags": tags, "tagged_at": datetime.utcnow().isoformat()}
+    _TAGGED_FEEDBACK[feedback_id] = {
+        "feedback_id": feedback_id,
+        "tags": tags,
+        "tagged_at": datetime.utcnow().isoformat(),
+    }
     return _TAGGED_FEEDBACK[feedback_id]
 
 
@@ -67,7 +124,9 @@ def _escalate_negative_feedback(feedback_id: str, priority: str) -> dict[str, An
         "escalation_id": f"ESC-{len(_ESCALATIONS) + 1:04d}",
         "feedback_id": feedback_id,
         "priority": priority,
-        "escalated_to": "customer_success_team" if priority in {"low", "medium"} else "vp_customer_success",
+        "escalated_to": "customer_success_team"
+        if priority in {"low", "medium"}
+        else "vp_customer_success",
         "escalated_at": datetime.utcnow().isoformat(),
         "status": "open",
     }
@@ -85,8 +144,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "source": {"type": "string", "description": "Feedback source (e.g. support_tickets, nps_survey, reviews)"},
-                "limit": {"type": "integer", "description": "Maximum number of feedback items to return (default 10)"},
+                "source": {
+                    "type": "string",
+                    "description": "Feedback source (e.g. support_tickets, nps_survey, reviews)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of feedback items to return (default 10)",
+                },
             },
             "required": ["source"],
         },
@@ -109,7 +174,11 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "feedback_id": {"type": "string", "description": "Feedback item ID"},
-                "tags": {"type": "array", "items": {"type": "string"}, "description": "List of tags to apply"},
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of tags to apply",
+                },
             },
             "required": ["feedback_id", "tags"],
         },
@@ -120,8 +189,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "feedback_id": {"type": "string", "description": "Feedback ID to escalate"},
-                "priority": {"type": "string", "description": "Priority level: low, medium, high, or critical"},
+                "feedback_id": {
+                    "type": "string",
+                    "description": "Feedback ID to escalate",
+                },
+                "priority": {
+                    "type": "string",
+                    "description": "Priority level: low, medium, high, or critical",
+                },
             },
             "required": ["feedback_id", "priority"],
         },

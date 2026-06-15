@@ -26,8 +26,14 @@ _TOOLS = [
                         "required": ["role", "content"],
                     },
                 },
-                "max_tokens": {"type": "integer", "description": "Maximum tokens to generate (default 1024)."},
-                "temperature": {"type": "number", "description": "Sampling temperature (default 0.0)."},
+                "max_tokens": {
+                    "type": "integer",
+                    "description": "Maximum tokens to generate (default 1024).",
+                },
+                "temperature": {
+                    "type": "number",
+                    "description": "Sampling temperature (default 0.0).",
+                },
             },
             "required": ["messages"],
         },
@@ -49,8 +55,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "document_url": {"type": "string", "description": "Publicly accessible URL of the document to analyze."},
-                "model_id": {"type": "string", "description": "Document Intelligence model ID (default prebuilt-invoice)."},
+                "document_url": {
+                    "type": "string",
+                    "description": "Publicly accessible URL of the document to analyze.",
+                },
+                "model_id": {
+                    "type": "string",
+                    "description": "Document Intelligence model ID (default prebuilt-invoice).",
+                },
             },
             "required": ["document_url"],
         },
@@ -61,10 +73,19 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "index_name": {"type": "string", "description": "Name of the AI Search index to query."},
+                "index_name": {
+                    "type": "string",
+                    "description": "Name of the AI Search index to query.",
+                },
                 "query": {"type": "string", "description": "Search query string."},
-                "top_k": {"type": "integer", "description": "Number of results to return (default 5)."},
-                "query_type": {"type": "string", "description": "Query type: semantic or simple (default semantic)."},
+                "top_k": {
+                    "type": "integer",
+                    "description": "Number of results to return (default 5).",
+                },
+                "query_type": {
+                    "type": "string",
+                    "description": "Query type: semantic or simple (default semantic).",
+                },
             },
             "required": ["index_name", "query"],
         },
@@ -75,7 +96,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "index_name": {"type": "string", "description": "Name of the AI Search index to upload to."},
+                "index_name": {
+                    "type": "string",
+                    "description": "Name of the AI Search index to upload to.",
+                },
                 "documents": {
                     "type": "array",
                     "description": "Array of document objects to upload.",

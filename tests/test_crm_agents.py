@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from agentic_erp.crm.lead_scoring_agent import LeadScoringAgent
 from agentic_erp.crm.customer_success_agent import CustomerSuccessAgent
@@ -16,6 +15,7 @@ from agentic_erp.crm.churn_prediction_agent import ChurnPredictionAgent
 # Test helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_text_response(text: str):
     block = MagicMock()
     block.type = "text"
@@ -26,7 +26,9 @@ def _make_text_response(text: str):
     return response
 
 
-def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str):
+def _make_tool_then_text_response(
+    tool_name: str, tool_inputs: dict, tool_use_id: str, final_text: str
+):
     tool_block = MagicMock()
     tool_block.type = "tool_use"
     tool_block.name = tool_name
@@ -52,10 +54,13 @@ def _make_tool_then_text_response(tool_name: str, tool_inputs: dict, tool_use_id
 # LeadScoringAgent
 # ---------------------------------------------------------------------------
 
+
 class TestLeadScoringAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("LEAD-001 scored 85/100 — hot lead.")
+        client.messages.create.return_value = _make_text_response(
+            "LEAD-001 scored 85/100 — hot lead."
+        )
         agent = LeadScoringAgent(client=client)
         result = agent.run("Score lead LEAD-001")
         assert isinstance(result, str)
@@ -92,13 +97,18 @@ class TestLeadScoringAgent:
 
     def test_dispatch_score_lead(self):
         agent = LeadScoringAgent(client=MagicMock())
-        result = agent._dispatch_tool("score_lead", {"lead_id": "LEAD-001", "score": 85, "reasoning": "High engagement"})
+        result = agent._dispatch_tool(
+            "score_lead",
+            {"lead_id": "LEAD-001", "score": 85, "reasoning": "High engagement"},
+        )
         assert isinstance(result, dict)
 
     def test_dispatch_assign_lead(self):
         agent = LeadScoringAgent(client=MagicMock())
         # Use IDs that exist in the agent's simulated data
-        result = agent._dispatch_tool("assign_lead", {"lead_id": "LEAD-001", "rep_id": "REP-01"})
+        result = agent._dispatch_tool(
+            "assign_lead", {"lead_id": "LEAD-001", "rep_id": "REP-01"}
+        )
         assert isinstance(result, dict)
 
     def test_dispatch_unknown_tool(self):
@@ -111,10 +121,13 @@ class TestLeadScoringAgent:
 # CustomerSuccessAgent
 # ---------------------------------------------------------------------------
 
+
 class TestCustomerSuccessAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("2 accounts are at risk with health < 60.")
+        client.messages.create.return_value = _make_text_response(
+            "2 accounts are at risk with health < 60."
+        )
         agent = CustomerSuccessAgent(client=client)
         result = agent.run("Find all at-risk accounts")
         assert isinstance(result, str)
@@ -174,10 +187,13 @@ class TestCustomerSuccessAgent:
 # SalesPipelineAgent
 # ---------------------------------------------------------------------------
 
+
 class TestSalesPipelineAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("3 open opportunities found in the pipeline.")
+        client.messages.create.return_value = _make_text_response(
+            "3 open opportunities found in the pipeline."
+        )
         agent = SalesPipelineAgent(client=client)
         result = agent.run("Show all open opportunities")
         assert isinstance(result, str)
@@ -214,7 +230,10 @@ class TestSalesPipelineAgent:
 
     def test_dispatch_advance_opportunity_stage(self):
         agent = SalesPipelineAgent(client=MagicMock())
-        result = agent._dispatch_tool("advance_opportunity_stage", {"opp_id": "OPP-001", "new_stage": "negotiation"})
+        result = agent._dispatch_tool(
+            "advance_opportunity_stage",
+            {"opp_id": "OPP-001", "new_stage": "negotiation"},
+        )
         assert isinstance(result, dict)
 
     def test_dispatch_generate_forecast(self):
@@ -237,10 +256,13 @@ class TestSalesPipelineAgent:
 # ChurnPredictionAgent
 # ---------------------------------------------------------------------------
 
+
 class TestChurnPredictionAgent:
     def test_direct_text_response(self):
         client = MagicMock()
-        client.messages.create.return_value = _make_text_response("2 accounts at high churn risk detected.")
+        client.messages.create.return_value = _make_text_response(
+            "2 accounts at high churn risk detected."
+        )
         agent = ChurnPredictionAgent(client=client)
         result = agent.run("Identify high churn risk accounts")
         assert isinstance(result, str)
@@ -267,7 +289,9 @@ class TestChurnPredictionAgent:
 
     def test_dispatch_analyze_churn_signals(self):
         agent = ChurnPredictionAgent(client=MagicMock())
-        result = agent._dispatch_tool("analyze_churn_signals", {"account_id": "ACC-003"})
+        result = agent._dispatch_tool(
+            "analyze_churn_signals", {"account_id": "ACC-003"}
+        )
         assert isinstance(result, dict)
         assert "signals" in result
 

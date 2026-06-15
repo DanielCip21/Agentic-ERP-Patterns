@@ -87,19 +87,21 @@ def connector(config):
 class TestAzureAIConnectorHappyPath:
     @respx.mock
     def test_chat_complete(self, connector):
-        respx.post(
-            f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/chat/completions"
-        ).mock(return_value=httpx.Response(200, json=CHAT_RESPONSE))
+        respx.post(f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/chat/completions").mock(
+            return_value=httpx.Response(200, json=CHAT_RESPONSE)
+        )
 
-        result = connector.chat_complete([{"role": "user", "content": "What is the invoice total?"}])
+        result = connector.chat_complete(
+            [{"role": "user", "content": "What is the invoice total?"}]
+        )
         assert result["choices"][0]["message"]["content"] == "Invoice total is $1,250."
         assert result["usage"]["total_tokens"] == 42
 
     @respx.mock
     def test_embed_text(self, connector):
-        respx.post(
-            f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/embeddings"
-        ).mock(return_value=httpx.Response(200, json=EMBED_RESPONSE))
+        respx.post(f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/embeddings").mock(
+            return_value=httpx.Response(200, json=EMBED_RESPONSE)
+        )
 
         result = connector.embed_text("invoice vendor name")
         assert result["data"][0]["embedding"] == [0.1, 0.2, 0.3]
@@ -114,9 +116,9 @@ class TestAzureAIConnectorHappyPath:
             ],
             "model": "text-embedding-3-large",
         }
-        respx.post(
-            f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/embeddings"
-        ).mock(return_value=httpx.Response(200, json=batch_response))
+        respx.post(f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/embeddings").mock(
+            return_value=httpx.Response(200, json=batch_response)
+        )
 
         result = connector.embed_batch(["invoice vendor name", "payment terms"])
         assert len(result["data"]) == 2
@@ -146,9 +148,9 @@ class TestAzureAIConnectorHappyPath:
 
     @respx.mock
     def test_search_index(self, connector):
-        respx.post(
-            f"{AI_SEARCH_BASE}/indexes/kb-index/docs/search"
-        ).mock(return_value=httpx.Response(200, json=SEARCH_RESPONSE))
+        respx.post(f"{AI_SEARCH_BASE}/indexes/kb-index/docs/search").mock(
+            return_value=httpx.Response(200, json=SEARCH_RESPONSE)
+        )
 
         result = connector.search_index("kb-index", "invoice payment terms")
         assert result["value"][0]["id"] == "doc-1"
@@ -156,9 +158,9 @@ class TestAzureAIConnectorHappyPath:
 
     @respx.mock
     def test_vector_search(self, connector):
-        respx.post(
-            f"{AI_SEARCH_BASE}/indexes/kb-index/docs/search"
-        ).mock(return_value=httpx.Response(200, json=SEARCH_RESPONSE))
+        respx.post(f"{AI_SEARCH_BASE}/indexes/kb-index/docs/search").mock(
+            return_value=httpx.Response(200, json=SEARCH_RESPONSE)
+        )
 
         result = connector.vector_search(
             "kb-index",
@@ -170,9 +172,9 @@ class TestAzureAIConnectorHappyPath:
 
     @respx.mock
     def test_upload_documents(self, connector):
-        respx.post(
-            f"{AI_SEARCH_BASE}/indexes/kb-index/docs/index"
-        ).mock(return_value=httpx.Response(200, json=UPLOAD_RESPONSE))
+        respx.post(f"{AI_SEARCH_BASE}/indexes/kb-index/docs/index").mock(
+            return_value=httpx.Response(200, json=UPLOAD_RESPONSE)
+        )
 
         docs = [{"id": "doc-1", "content": "Invoice terms are net-30."}]
         result = connector.upload_documents("kb-index", docs)
@@ -189,9 +191,9 @@ class TestAzureAIConnectorHappyPath:
 class TestAzureAIConnectorErrors:
     @respx.mock
     def test_chat_500_raises_connector_error(self, connector):
-        respx.post(
-            f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/chat/completions"
-        ).mock(return_value=httpx.Response(500, text="Internal Server Error"))
+        respx.post(f"{AI_BASE}/openai/deployments/{DEPLOYMENT}/chat/completions").mock(
+            return_value=httpx.Response(500, text="Internal Server Error")
+        )
 
         with pytest.raises(ConnectorError) as exc_info:
             connector.chat_complete([{"role": "user", "content": "Hello"}])
@@ -213,7 +215,8 @@ class TestAzureAIConnectorErrors:
             f"{AI_BASE}/documentintelligence/documentModels/prebuilt-invoice:analyze"
         ).mock(
             return_value=httpx.Response(
-                404, json={"error": {"code": "ModelNotFound", "message": "Model not found"}}
+                404,
+                json={"error": {"code": "ModelNotFound", "message": "Model not found"}},
             )
         )
 

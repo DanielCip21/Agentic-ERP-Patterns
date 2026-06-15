@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -15,6 +14,7 @@ from agentic_erp.agents.async_base import AsyncBaseERPAgent
 # ---------------------------------------------------------------------------
 # Concrete subclass used in tests
 # ---------------------------------------------------------------------------
+
 
 class _GreetAgent(AsyncBaseERPAgent):
     """Minimal agent that handles one tool: greet."""
@@ -39,6 +39,7 @@ _GREET_TOOL = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _text_response(text: str) -> MagicMock:
     block = MagicMock()
@@ -71,6 +72,7 @@ def _make_client(*side_effects) -> MagicMock:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestAsyncBaseERPAgentEndTurn:
     def test_end_turn_immediately_returns_text(self):

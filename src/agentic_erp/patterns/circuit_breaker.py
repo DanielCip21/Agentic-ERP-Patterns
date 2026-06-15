@@ -8,8 +8,8 @@ from enum import Enum
 
 
 class CircuitState(str, Enum):
-    CLOSED = "closed"        # Normal — calls flow through
-    OPEN = "open"            # Tripped — calls blocked until recovery_timeout elapses
+    CLOSED = "closed"  # Normal — calls flow through
+    OPEN = "open"  # Tripped — calls blocked until recovery_timeout elapses
     HALF_OPEN = "half_open"  # Probing — one call allowed to test recovery
 
 
@@ -72,7 +72,10 @@ class CircuitBreaker:
     def record_failure(self) -> None:
         """Call after a platform error — may trip the breaker to OPEN."""
         self._failure_count += 1
-        if self._state is CircuitState.HALF_OPEN or self._failure_count >= self.failure_threshold:
+        if (
+            self._state is CircuitState.HALF_OPEN
+            or self._failure_count >= self.failure_threshold
+        ):
             self._state = CircuitState.OPEN
             self._opened_at = time.monotonic()
 

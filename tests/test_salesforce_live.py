@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock
 
 import httpx
@@ -50,6 +49,7 @@ SOQL_RESPONSE = {
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def config():
     return SalesforceConfig(
@@ -66,6 +66,7 @@ def connector(config):
 # ---------------------------------------------------------------------------
 # TestSalesforceConnectorHappyPath
 # ---------------------------------------------------------------------------
+
 
 class TestSalesforceConnectorHappyPath:
     @respx.mock
@@ -112,7 +113,9 @@ class TestSalesforceConnectorHappyPath:
         respx.post(f"{SF_BASE}/sobjects/Lead").mock(
             return_value=httpx.Response(201, json=create_response)
         )
-        result = connector.create_record("Lead", {"LastName": "Jones", "Company": "Beta Inc"})
+        result = connector.create_record(
+            "Lead", {"LastName": "Jones", "Company": "Beta Inc"}
+        )
         assert result["id"] == "00Q000002"
         assert result["success"] is True
 
@@ -134,7 +137,12 @@ class TestSalesforceConnectorHappyPath:
 
     @respx.mock
     def test_upsert_by_external_id(self, connector):
-        upsert_response = {"id": "00Q000003", "success": True, "errors": [], "created": True}
+        upsert_response = {
+            "id": "00Q000003",
+            "success": True,
+            "errors": [],
+            "created": True,
+        }
         respx.patch(f"{SF_BASE}/sobjects/Lead/External_Id__c/EXT-001").mock(
             return_value=httpx.Response(201, json=upsert_response)
         )
@@ -162,13 +170,19 @@ class TestSalesforceConnectorHappyPath:
 # TestSalesforceConnectorErrors
 # ---------------------------------------------------------------------------
 
+
 class TestSalesforceConnectorErrors:
     @respx.mock
     def test_404_raises_not_found(self, connector):
         respx.get(f"{SF_BASE}/sobjects/Lead/MISSING").mock(
             return_value=httpx.Response(
                 404,
-                json=[{"message": "The requested resource does not exist", "errorCode": "NOT_FOUND"}],
+                json=[
+                    {
+                        "message": "The requested resource does not exist",
+                        "errorCode": "NOT_FOUND",
+                    }
+                ],
             )
         )
         with pytest.raises(NotFoundError):
@@ -179,7 +193,12 @@ class TestSalesforceConnectorErrors:
         respx.get(f"{SF_BASE}/sobjects/Lead/00Q000001").mock(
             return_value=httpx.Response(
                 401,
-                json=[{"message": "Session expired or invalid", "errorCode": "INVALID_SESSION_ID"}],
+                json=[
+                    {
+                        "message": "Session expired or invalid",
+                        "errorCode": "INVALID_SESSION_ID",
+                    }
+                ],
             )
         )
         with pytest.raises(ConnectorError) as exc_info:
@@ -198,6 +217,7 @@ class TestSalesforceConnectorErrors:
 # ---------------------------------------------------------------------------
 # TestSalesforceCRMAgent
 # ---------------------------------------------------------------------------
+
 
 class TestSalesforceCRMAgent:
     @respx.mock

@@ -12,18 +12,35 @@ from agentic_erp.agents.base import BaseERPAgent
 # ---------------------------------------------------------------------------
 _SYNC_DELTAS: dict[str, list[dict]] = {
     "salesforce": [
-        {"record_id": "SF-001", "entity": "Contact", "operation": "update",
-         "fields": {"email": "new@example.com", "phone": "555-1234"}},
-        {"record_id": "SF-002", "entity": "Lead", "operation": "create",
-         "fields": {"name": "New Lead", "company": "Startup Co"}},
+        {
+            "record_id": "SF-001",
+            "entity": "Contact",
+            "operation": "update",
+            "fields": {"email": "new@example.com", "phone": "555-1234"},
+        },
+        {
+            "record_id": "SF-002",
+            "entity": "Lead",
+            "operation": "create",
+            "fields": {"name": "New Lead", "company": "Startup Co"},
+        },
     ],
     "dynamics365": [
-        {"record_id": "D365-001", "entity": "Account", "operation": "update",
-         "fields": {"annual_revenue": 500000, "employees": 120}},
+        {
+            "record_id": "D365-001",
+            "entity": "Account",
+            "operation": "update",
+            "fields": {"annual_revenue": 500000, "employees": 120},
+        },
     ],
 }
 
-_CONFLICT_STRATEGIES = ["source_wins", "target_wins", "latest_timestamp_wins", "manual_review"]
+_CONFLICT_STRATEGIES = [
+    "source_wins",
+    "target_wins",
+    "latest_timestamp_wins",
+    "manual_review",
+]
 _SYNC_RESULTS: list[dict] = []
 
 
@@ -48,10 +65,19 @@ def _apply_changes(target_system: str, changes: list[dict]) -> dict[str, Any]:
         operation = change.get("operation", "unknown")
         # Simulate 95% success rate
         import random
+
         if random.random() > 0.05:
-            applied.append({"record_id": record_id, "operation": operation, "status": "applied"})
+            applied.append(
+                {"record_id": record_id, "operation": operation, "status": "applied"}
+            )
         else:
-            failed.append({"record_id": record_id, "operation": operation, "error": "Simulated write failure"})
+            failed.append(
+                {
+                    "record_id": record_id,
+                    "operation": operation,
+                    "error": "Simulated write failure",
+                }
+            )
     return {
         "target_system": target_system,
         "applied": len(applied),
@@ -64,7 +90,9 @@ def _apply_changes(target_system: str, changes: list[dict]) -> dict[str, Any]:
 
 def _resolve_conflict(record_id: str, strategy: str) -> dict[str, Any]:
     if strategy not in _CONFLICT_STRATEGIES:
-        return {"error": f"Invalid strategy '{strategy}'. Valid: {_CONFLICT_STRATEGIES}"}
+        return {
+            "error": f"Invalid strategy '{strategy}'. Valid: {_CONFLICT_STRATEGIES}"
+        }
     return {
         "record_id": record_id,
         "strategy_applied": strategy,
@@ -95,8 +123,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "source_system": {"type": "string", "description": "Source system name (e.g. salesforce, dynamics365)"},
-                "since_timestamp": {"type": "string", "description": "ISO 8601 timestamp — only return changes after this time"},
+                "source_system": {
+                    "type": "string",
+                    "description": "Source system name (e.g. salesforce, dynamics365)",
+                },
+                "since_timestamp": {
+                    "type": "string",
+                    "description": "ISO 8601 timestamp — only return changes after this time",
+                },
             },
             "required": ["source_system", "since_timestamp"],
         },
@@ -107,7 +141,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "target_system": {"type": "string", "description": "Target system name"},
+                "target_system": {
+                    "type": "string",
+                    "description": "Target system name",
+                },
                 "changes": {
                     "type": "array",
                     "items": {"type": "object"},
@@ -123,8 +160,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "Record ID with a conflict"},
-                "strategy": {"type": "string", "description": "Conflict resolution strategy: source_wins, target_wins, latest_timestamp_wins, manual_review"},
+                "record_id": {
+                    "type": "string",
+                    "description": "Record ID with a conflict",
+                },
+                "strategy": {
+                    "type": "string",
+                    "description": "Conflict resolution strategy: source_wins, target_wins, latest_timestamp_wins, manual_review",
+                },
             },
             "required": ["record_id", "strategy"],
         },
@@ -137,7 +180,10 @@ _TOOLS = [
             "properties": {
                 "source": {"type": "string", "description": "Source system name"},
                 "target": {"type": "string", "description": "Target system name"},
-                "stats": {"type": "object", "description": "Sync statistics dict (applied, failed, conflicts, etc.)"},
+                "stats": {
+                    "type": "object",
+                    "description": "Sync statistics dict (applied, failed, conflicts, etc.)",
+                },
             },
             "required": ["source", "target", "stats"],
         },

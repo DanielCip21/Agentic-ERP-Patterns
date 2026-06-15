@@ -11,7 +11,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from agentic_erp.server.deps import ServerState, get_state
-from agentic_erp.server.models import AgentRunRequest, AgentRunResponse, AgentStreamRequest
+from agentic_erp.server.models import (
+    AgentRunRequest,
+    AgentRunResponse,
+    AgentStreamRequest,
+)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -19,12 +23,16 @@ State = Annotated[ServerState, Depends(get_state)]
 
 
 @router.post("/{platform}/run", response_model=AgentRunResponse)
-async def run_agent(platform: str, req: AgentRunRequest, state: State) -> AgentRunResponse:
+async def run_agent(
+    platform: str, req: AgentRunRequest, state: State
+) -> AgentRunResponse:
     """Run a single platform agent and return the complete response."""
     _check_platform(platform, state)
     t0 = time.monotonic()
     try:
-        result = await asyncio.to_thread(state.orchestrator.run_platform, platform, req.message)
+        result = await asyncio.to_thread(
+            state.orchestrator.run_platform, platform, req.message
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return AgentRunResponse(
@@ -35,7 +43,9 @@ async def run_agent(platform: str, req: AgentRunRequest, state: State) -> AgentR
 
 
 @router.post("/{platform}/stream")
-async def stream_agent(platform: str, req: AgentStreamRequest, state: State) -> StreamingResponse:
+async def stream_agent(
+    platform: str, req: AgentStreamRequest, state: State
+) -> StreamingResponse:
     """Stream a platform agent response as Server-Sent Events.
 
     Each SSE event carries ``{"text": "<chunk>"}``; the final event is ``[DONE]``.
@@ -75,5 +85,5 @@ def _check_platform(platform: str, state: ServerState) -> None:
         raise HTTPException(
             status_code=404,
             detail=f"Platform {platform!r} not configured. "
-                   f"Available: {state.orchestrator.configured_platforms}",
+            f"Available: {state.orchestrator.configured_platforms}",
         )

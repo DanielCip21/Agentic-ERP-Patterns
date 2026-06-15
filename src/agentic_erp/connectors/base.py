@@ -105,6 +105,7 @@ class BaseHTTPConnector:
 
         if method == "GET" and self._cache is not None:
             from agentic_erp.cache.response_cache import ResponseCache
+
             cache_key = ResponseCache.make_key("GET", url, params)
             cached = self._cache.get(cache_key)
             if cached is not None:

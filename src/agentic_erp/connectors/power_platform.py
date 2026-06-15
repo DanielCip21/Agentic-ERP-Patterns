@@ -13,8 +13,8 @@ from agentic_erp.connectors.base import BaseHTTPConnector
 class PowerPlatformConfig(BaseModel):
     """Power Platform API configuration."""
 
-    environment_id: str          # e.g. Default-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    environment_url: str         # e.g. https://orgname.crm.dynamics.com  (for Dataverse)
+    environment_id: str  # e.g. Default-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    environment_url: str  # e.g. https://orgname.crm.dynamics.com  (for Dataverse)
     tenant_id: str
     client_id: str
     client_secret: str
@@ -126,12 +126,18 @@ class PowerPlatformConnector:
         """POST /{table} — create a row in a Dataverse table."""
         return self._dv._post(table, json=data)
 
-    def update_dataverse_row(self, table: str, row_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    def update_dataverse_row(
+        self, table: str, row_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """PATCH /{table}({row_id}) — update a Dataverse row."""
         return self._dv._patch(f"{table}({row_id})", json=data)
 
     def query_dataverse(
-        self, table: str, filter_expr: str = "", select_cols: list[str] | None = None, top: int = 50
+        self,
+        table: str,
+        filter_expr: str = "",
+        select_cols: list[str] | None = None,
+        top: int = 50,
     ) -> list[dict[str, Any]]:
         """GET /{table} with OData filter + select."""
         params: dict[str, Any] = {"$top": top}

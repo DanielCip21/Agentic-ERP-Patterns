@@ -23,8 +23,12 @@ class AgentStreamRequest(BaseModel):
 
 
 class OrchestratorRunRequest(BaseModel):
-    task: str = Field(..., description="Natural-language task routed to matched platforms.")
-    parallel: bool = Field(True, description="Dispatch matched agents in parallel (async).")
+    task: str = Field(
+        ..., description="Natural-language task routed to matched platforms."
+    )
+    parallel: bool = Field(
+        True, description="Dispatch matched agents in parallel (async)."
+    )
 
 
 class OrchestratorRunResponse(BaseModel):

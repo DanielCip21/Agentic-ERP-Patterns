@@ -14,7 +14,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "order_id": {"type": "string", "description": "Dynamics 365 salesorderid (GUID)"},
+                "order_id": {
+                    "type": "string",
+                    "description": "Dynamics 365 salesorderid (GUID)",
+                },
             },
             "required": ["order_id"],
         },
@@ -25,8 +28,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "filter_expr": {"type": "string", "description": "OData $filter expression (e.g. statecode eq 0)"},
-                "top": {"type": "integer", "description": "Max records to return (default 50)"},
+                "filter_expr": {
+                    "type": "string",
+                    "description": "OData $filter expression (e.g. statecode eq 0)",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Max records to return (default 50)",
+                },
             },
         },
     },
@@ -37,8 +46,14 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "order_id": {"type": "string"},
-                "state_code": {"type": "integer", "description": "0=Active, 1=Submitted, 2=Cancelled, 3=Fulfilled, 4=Invoiced"},
-                "status_code": {"type": "integer", "description": "Substatus code matching the state"},
+                "state_code": {
+                    "type": "integer",
+                    "description": "0=Active, 1=Submitted, 2=Cancelled, 3=Fulfilled, 4=Invoiced",
+                },
+                "status_code": {
+                    "type": "integer",
+                    "description": "Substatus code matching the state",
+                },
             },
             "required": ["order_id", "state_code", "status_code"],
         },
@@ -49,7 +64,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "account_id": {"type": "string", "description": "Dynamics 365 accountid (GUID)"},
+                "account_id": {
+                    "type": "string",
+                    "description": "Dynamics 365 accountid (GUID)",
+                },
             },
             "required": ["account_id"],
         },
@@ -97,7 +115,10 @@ class Dynamics365OrderAgent(BaseERPAgent):
             case "update_order_status":
                 return self._d365.update_sales_order(
                     inputs["order_id"],
-                    {"statecode": inputs["state_code"], "statuscode": inputs["status_code"]},
+                    {
+                        "statecode": inputs["state_code"],
+                        "statuscode": inputs["status_code"],
+                    },
                 )
             case "get_account":
                 return self._d365.get_account(inputs["account_id"])

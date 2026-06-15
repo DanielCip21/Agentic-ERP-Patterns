@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -11,7 +11,6 @@ from agentic_erp.connectors.dataverse import DataverseConfig
 from agentic_erp.connectors.dynamics365 import Dynamics365Config
 from agentic_erp.connectors.power_platform import PowerPlatformConfig
 from agentic_erp.connectors.salesforce import SalesforceConfig
-from agentic_erp.patterns.circuit_breaker import CircuitBreaker, CircuitState
 from agentic_erp.patterns.live_platform_orchestrator import LivePlatformOrchestrator
 
 
@@ -19,35 +18,53 @@ from agentic_erp.patterns.live_platform_orchestrator import LivePlatformOrchestr
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _d365_config() -> Dynamics365Config:
     return Dynamics365Config(
-        tenant_id="t", client_id="c", client_secret="s",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
         environment_url="https://org.crm.dynamics.com",
     )
 
+
 def _sf_config() -> SalesforceConfig:
-    return SalesforceConfig(instance_url="https://org.my.salesforce.com", access_token="tok")
+    return SalesforceConfig(
+        instance_url="https://org.my.salesforce.com", access_token="tok"
+    )
+
 
 def _pp_config() -> PowerPlatformConfig:
     return PowerPlatformConfig(
-        environment_id="env-1", environment_url="https://org.crm.dynamics.com",
-        tenant_id="t", client_id="c", client_secret="s",
+        environment_id="env-1",
+        environment_url="https://org.crm.dynamics.com",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
     )
 
+
 def _ai_config() -> AzureAIConfig:
-    return AzureAIConfig(endpoint="https://res.openai.azure.com", api_key="k", deployment_name="gpt-4o")
+    return AzureAIConfig(
+        endpoint="https://res.openai.azure.com", api_key="k", deployment_name="gpt-4o"
+    )
+
 
 def _dv_config() -> DataverseConfig:
     return DataverseConfig(
         environment_url="https://org.crm.dynamics.com",
-        tenant_id="t", client_id="c", client_secret="s",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
     )
+
 
 def _mock_agent(response: str = "ok") -> MagicMock:
     """Return a fake agent whose run() always returns *response*."""
     agent = MagicMock()
     agent.run.return_value = response
     return agent
+
 
 def _mock_client(text: str = "synthesized answer") -> MagicMock:
     """Return a fake Anthropic client whose messages.create() returns *text*."""
@@ -64,13 +81,16 @@ def _mock_client(text: str = "synthesized answer") -> MagicMock:
 # Construction
 # ---------------------------------------------------------------------------
 
+
 class TestLivePlatformOrchestratorConstruction:
     def test_raises_with_no_configs(self):
         with pytest.raises(ValueError, match="At least one"):
             LivePlatformOrchestrator()
 
     def test_single_platform_configured(self):
-        orch = LivePlatformOrchestrator(salesforce_config=_sf_config(), client=_mock_client())
+        orch = LivePlatformOrchestrator(
+            salesforce_config=_sf_config(), client=_mock_client()
+        )
         assert orch.configured_platforms == ["salesforce"]
 
     def test_all_five_platforms_configured(self):
@@ -83,13 +103,18 @@ class TestLivePlatformOrchestratorConstruction:
             client=_mock_client(),
         )
         assert set(orch.configured_platforms) == {
-            "dynamics365", "salesforce", "power_platform", "azure_ai", "dataverse"
+            "dynamics365",
+            "salesforce",
+            "power_platform",
+            "azure_ai",
+            "dataverse",
         }
 
 
 # ---------------------------------------------------------------------------
 # _select_agents routing
 # ---------------------------------------------------------------------------
+
 
 class TestSelectAgents:
     def _orch(self) -> LivePlatformOrchestrator:
@@ -109,11 +134,15 @@ class TestSelectAgents:
 
     def test_routes_salesforce_keyword(self):
         orch = self._orch()
-        assert "salesforce" in orch._select_agents("Run a SOQL query on Salesforce leads")
+        assert "salesforce" in orch._select_agents(
+            "Run a SOQL query on Salesforce leads"
+        )
 
     def test_routes_power_platform_keyword(self):
         orch = self._orch()
-        assert "power_platform" in orch._select_agents("Trigger a flow in Power Automate")
+        assert "power_platform" in orch._select_agents(
+            "Trigger a flow in Power Automate"
+        )
 
     def test_routes_azure_ai_keyword(self):
         orch = self._orch()
@@ -121,7 +150,9 @@ class TestSelectAgents:
 
     def test_routes_dataverse_keyword(self):
         orch = self._orch()
-        assert "dataverse" in orch._select_agents("Run a FetchXML query on the dataverse table")
+        assert "dataverse" in orch._select_agents(
+            "Run a FetchXML query on the dataverse table"
+        )
 
     def test_fallback_to_all_when_no_keyword_matches(self):
         orch = self._orch()
@@ -138,7 +169,9 @@ class TestSelectAgents:
 
     def test_multi_platform_task(self):
         orch = self._orch()
-        result = orch._select_agents("Compare Salesforce pipeline with D365 opportunities")
+        result = orch._select_agents(
+            "Compare Salesforce pipeline with D365 opportunities"
+        )
         assert "salesforce" in result
         assert "dynamics365" in result
 
@@ -146,6 +179,7 @@ class TestSelectAgents:
 # ---------------------------------------------------------------------------
 # run()
 # ---------------------------------------------------------------------------
+
 
 class TestRun:
     def test_run_dispatches_to_matched_agent(self):
@@ -176,7 +210,9 @@ class TestRun:
         assert set(results.keys()) == {"dynamics365", "salesforce"}
 
     def test_run_returns_dict_of_strings(self):
-        orch = LivePlatformOrchestrator(azure_ai_config=_ai_config(), client=_mock_client())
+        orch = LivePlatformOrchestrator(
+            azure_ai_config=_ai_config(), client=_mock_client()
+        )
         orch._agents["azure_ai"] = _mock_agent("AI answer")
         results = orch.run("Analyze this document")
         assert isinstance(results, dict)
@@ -186,6 +222,7 @@ class TestRun:
 # ---------------------------------------------------------------------------
 # run_and_synthesize()
 # ---------------------------------------------------------------------------
+
 
 class TestRunAndSynthesize:
     def test_single_platform_returns_directly_no_extra_call(self):
@@ -246,6 +283,7 @@ class TestRunAndSynthesize:
 # Circuit breaker integration
 # ---------------------------------------------------------------------------
 
+
 class TestCircuitBreakerIntegration:
     def _orch(self) -> LivePlatformOrchestrator:
         client = _mock_client()
@@ -299,6 +337,7 @@ class TestCircuitBreakerIntegration:
 
     def test_open_breaker_skipped_in_run_async(self):
         import asyncio
+
         orch = self._orch()
         orch._breakers["salesforce"].record_failure()
         orch._breakers["salesforce"].record_failure()
@@ -311,12 +350,12 @@ class TestCircuitBreakerIntegration:
         orch = self._orch()
         orch._agents["dynamics365"].run.side_effect = [RuntimeError("err"), "ok"]
 
-        orch.run("D365 orders")                 # 1 failure
+        orch.run("D365 orders")  # 1 failure
         assert orch._breakers["dynamics365"].failure_count == 1
 
         orch._agents["dynamics365"].run.side_effect = None
         orch._agents["dynamics365"].run.return_value = "ok"
-        orch.run("D365 orders")                 # success
+        orch.run("D365 orders")  # success
         assert orch._breakers["dynamics365"].failure_count == 0
         assert orch.platform_status["dynamics365"] == "closed"
 

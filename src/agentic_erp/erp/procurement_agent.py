@@ -14,8 +14,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "category": {"type": "string", "description": "Vendor category (e.g. raw_materials, electronics, packaging)"},
-                "min_rating": {"type": "number", "description": "Minimum vendor rating (0-5). Default 0."},
+                "category": {
+                    "type": "string",
+                    "description": "Vendor category (e.g. raw_materials, electronics, packaging)",
+                },
+                "min_rating": {
+                    "type": "number",
+                    "description": "Minimum vendor rating (0-5). Default 0.",
+                },
             },
             "required": ["category"],
         },
@@ -26,7 +32,11 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "vendor_ids": {"type": "array", "items": {"type": "string"}, "description": "List of vendor IDs to send RFQ"},
+                "vendor_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of vendor IDs to send RFQ",
+                },
                 "items": {
                     "type": "array",
                     "items": {

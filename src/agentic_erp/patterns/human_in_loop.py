@@ -9,13 +9,14 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
-import anthropic
 
 from agentic_erp.agents.order_agent import OrderProcessingAgent
 
 # Actions requiring human approval and their value extractor functions.
 _HIGH_VALUE_TOOLS = {
-    "update_order_status": lambda inputs: inputs.get("status") in {"shipped", "cancelled"},
+    "update_order_status": lambda inputs: (
+        inputs.get("status") in {"shipped", "cancelled"}
+    ),
     "create_purchase_order": lambda inputs: inputs.get("quantity", 0) > 50,
 }
 
@@ -70,7 +71,9 @@ class HumanInLoopAgent(OrderProcessingAgent):
                                 {
                                     "type": "tool_result",
                                     "tool_use_id": block.id,
-                                    "content": json.dumps({"error": "Action rejected by human reviewer."}),
+                                    "content": json.dumps(
+                                        {"error": "Action rejected by human reviewer."}
+                                    ),
                                 }
                             )
                             continue

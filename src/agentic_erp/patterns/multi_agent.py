@@ -26,8 +26,13 @@ class MultiAgentOrchestrator:
         results: dict[str, str] = {}
 
         words = set(task_lower.split())
-        needs_order = bool(words & {"order", "orders", "shipment", "delivery", "customer", "customers"})
-        needs_inventory = any(kw in task_lower for kw in ("inventory", "stock", "replenish", "reorder", "purchase"))
+        needs_order = bool(
+            words & {"order", "orders", "shipment", "delivery", "customer", "customers"}
+        )
+        needs_inventory = any(
+            kw in task_lower
+            for kw in ("inventory", "stock", "replenish", "reorder", "purchase")
+        )
 
         if not needs_order and not needs_inventory:
             needs_order = True

@@ -14,9 +14,18 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "name": {"type": "string", "description": "Full name of the new employee"},
-                "department": {"type": "string", "description": "Department (e.g. Engineering, Sales, Finance)"},
-                "start_date": {"type": "string", "description": "Employment start date in YYYY-MM-DD format"},
+                "name": {
+                    "type": "string",
+                    "description": "Full name of the new employee",
+                },
+                "department": {
+                    "type": "string",
+                    "description": "Department (e.g. Engineering, Sales, Finance)",
+                },
+                "start_date": {
+                    "type": "string",
+                    "description": "Employment start date in YYYY-MM-DD format",
+                },
             },
             "required": ["name", "department", "start_date"],
         },
@@ -44,7 +53,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "employee_id": {"type": "string", "description": "Employee ID"},
-                "role": {"type": "string", "description": "Job role (e.g. engineer, sales, finance, manager)"},
+                "role": {
+                    "type": "string",
+                    "description": "Job role (e.g. engineer, sales, finance, manager)",
+                },
             },
             "required": ["employee_id", "role"],
         },

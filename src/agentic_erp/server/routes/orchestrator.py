@@ -21,7 +21,9 @@ State = Annotated[ServerState, Depends(get_state)]
 
 
 @router.post("/run", response_model=OrchestratorRunResponse)
-async def orchestrator_run(req: OrchestratorRunRequest, state: State) -> OrchestratorRunResponse:
+async def orchestrator_run(
+    req: OrchestratorRunRequest, state: State
+) -> OrchestratorRunResponse:
     """Route *task* to matched platform agents and return per-platform responses.
 
     With ``parallel=true`` (default) agents run concurrently via ``run_async``.

@@ -20,6 +20,7 @@ _SECRET = "test-api-key-secret"
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_orchestrator():
     orch = MagicMock()
     orch.configured_platforms = ["salesforce"]
@@ -40,7 +41,9 @@ def base_state():
 @pytest.fixture
 async def auth_client(base_state):
     app = create_app(base_state, api_key=_SECRET)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
@@ -48,7 +51,9 @@ async def auth_client(base_state):
 async def rate_client(base_state):
     """Client with a tight 3 rpm limit for threshold tests."""
     app = create_app(base_state, rate_limit_rpm=3)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
@@ -56,13 +61,16 @@ async def rate_client(base_state):
 async def both_client(base_state):
     """Client with both auth and rate limiting (5 rpm)."""
     app = create_app(base_state, api_key=_SECRET, rate_limit_rpm=5)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
 # ---------------------------------------------------------------------------
 # RateLimiter unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestRateLimiter:
     def test_allows_requests_within_limit(self):
@@ -119,6 +127,7 @@ class TestRateLimiter:
 # APIKeyMiddleware integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestAPIKeyMiddleware:
     @pytest.mark.asyncio
     async def test_missing_key_returns_401(self, auth_client):
@@ -174,6 +183,7 @@ class TestAPIKeyMiddleware:
 # RateLimitMiddleware integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestRateLimitMiddleware:
     @pytest.mark.asyncio
     async def test_requests_within_limit_succeed(self, rate_client):
@@ -220,7 +230,9 @@ class TestRateLimitMiddleware:
     async def test_health_exempt_from_rate_limit(self, base_state):
         # Limit of 1 rpm — health should still always succeed.
         app = create_app(base_state, rate_limit_rpm=1)
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as c:
             for _ in range(5):
                 resp = await c.get("/health")
                 assert resp.status_code == 200
@@ -235,6 +247,7 @@ class TestRateLimitMiddleware:
 # ---------------------------------------------------------------------------
 # Auth + rate-limit combined
 # ---------------------------------------------------------------------------
+
 
 class TestCombinedMiddleware:
     @pytest.mark.asyncio

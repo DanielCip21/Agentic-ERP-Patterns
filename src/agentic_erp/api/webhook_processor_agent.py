@@ -25,10 +25,15 @@ _DEAD_LETTERS: list[dict] = []
 
 
 def _classify_webhook(payload: dict) -> dict[str, Any]:
-    event_type = payload.get("event_type") or payload.get("type") or payload.get("event")
+    event_type = (
+        payload.get("event_type") or payload.get("type") or payload.get("event")
+    )
     source = payload.get("source") or "unknown"
     if not event_type:
-        return {"error": "Could not determine event_type from payload", "payload_keys": list(payload.keys())}
+        return {
+            "error": "Could not determine event_type from payload",
+            "payload_keys": list(payload.keys()),
+        }
     is_known = event_type in _ROUTING_TABLE
     return {
         "event_type": event_type,
@@ -45,12 +50,19 @@ def _route_to_workflow(event_type: str, payload: dict) -> dict[str, Any]:
         return {"error": f"No workflow registered for event_type '{event_type}'"}
     webhook_id = f"WH-{len(_PROCESSED_WEBHOOKS) + 1:06d}"
     _PROCESSED_WEBHOOKS[webhook_id] = {
-        "webhook_id": webhook_id, "event_type": event_type,
-        "workflow": workflow, "status": "routed",
+        "webhook_id": webhook_id,
+        "event_type": event_type,
+        "workflow": workflow,
+        "status": "routed",
         "routed_at": datetime.utcnow().isoformat(),
     }
-    return {"webhook_id": webhook_id, "event_type": event_type, "routed_to": workflow,
-            "status": "routed", "routed_at": _PROCESSED_WEBHOOKS[webhook_id]["routed_at"]}
+    return {
+        "webhook_id": webhook_id,
+        "event_type": event_type,
+        "routed_to": workflow,
+        "status": "routed",
+        "routed_at": _PROCESSED_WEBHOOKS[webhook_id]["routed_at"],
+    }
 
 
 def _acknowledge_webhook(webhook_id: str) -> dict[str, Any]:
@@ -59,7 +71,11 @@ def _acknowledge_webhook(webhook_id: str) -> dict[str, Any]:
         return {"error": f"Webhook {webhook_id} not found"}
     wh["status"] = "acknowledged"
     wh["acknowledged_at"] = datetime.utcnow().isoformat()
-    return {"webhook_id": webhook_id, "status": "acknowledged", "acknowledged_at": wh["acknowledged_at"]}
+    return {
+        "webhook_id": webhook_id,
+        "status": "acknowledged",
+        "acknowledged_at": wh["acknowledged_at"],
+    }
 
 
 def _dead_letter(webhook_id: str, reason: str) -> dict[str, Any]:
@@ -86,7 +102,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "payload": {"type": "object", "description": "Raw webhook payload dict"},
+                "payload": {
+                    "type": "object",
+                    "description": "Raw webhook payload dict",
+                },
             },
             "required": ["payload"],
         },
@@ -97,8 +116,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "event_type": {"type": "string", "description": "Classified event type (e.g. order.created)"},
-                "payload": {"type": "object", "description": "Webhook payload to pass to the workflow"},
+                "event_type": {
+                    "type": "string",
+                    "description": "Classified event type (e.g. order.created)",
+                },
+                "payload": {
+                    "type": "object",
+                    "description": "Webhook payload to pass to the workflow",
+                },
             },
             "required": ["event_type", "payload"],
         },
@@ -121,7 +146,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "webhook_id": {"type": "string", "description": "Webhook tracking ID"},
-                "reason": {"type": "string", "description": "Reason the webhook could not be processed"},
+                "reason": {
+                    "type": "string",
+                    "description": "Reason the webhook could not be processed",
+                },
             },
             "required": ["webhook_id", "reason"],
         },

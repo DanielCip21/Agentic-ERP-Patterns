@@ -12,13 +12,17 @@ from agentic_erp.agents.base import BaseERPAgent
 # ---------------------------------------------------------------------------
 _HISTORICAL_SALES: dict[str, list[dict]] = {
     "PROD-001": [
-        {"period": "2026-01", "units": 320}, {"period": "2026-02", "units": 295},
-        {"period": "2026-03", "units": 410}, {"period": "2026-04", "units": 388},
+        {"period": "2026-01", "units": 320},
+        {"period": "2026-02", "units": 295},
+        {"period": "2026-03", "units": 410},
+        {"period": "2026-04", "units": 388},
         {"period": "2026-05", "units": 430},
     ],
     "PROD-002": [
-        {"period": "2026-01", "units": 80}, {"period": "2026-02", "units": 75},
-        {"period": "2026-03", "units": 90}, {"period": "2026-04", "units": 85},
+        {"period": "2026-01", "units": 80},
+        {"period": "2026-02", "units": 75},
+        {"period": "2026-03", "units": 90},
+        {"period": "2026-04", "units": 85},
         {"period": "2026-05", "units": 110},
     ],
 }
@@ -30,7 +34,11 @@ def _get_historical_sales(product_id: str, periods: int = 6) -> dict[str, Any]:
     history = _HISTORICAL_SALES.get(product_id)
     if not history:
         return {"error": f"Product {product_id} not found"}
-    return {"product_id": product_id, "history": history[-periods:], "periods_returned": min(periods, len(history))}
+    return {
+        "product_id": product_id,
+        "history": history[-periods:],
+        "periods_returned": min(periods, len(history)),
+    }
 
 
 def _run_demand_forecast(product_id: str, horizon_days: int) -> dict[str, Any]:
@@ -47,7 +55,10 @@ def _run_demand_forecast(product_id: str, horizon_days: int) -> dict[str, Any]:
         "forecasted_units": forecast_units,
         "daily_average": round(daily_avg, 2),
         "trend": trend,
-        "confidence_interval": {"lower": round(forecast_units * 0.85), "upper": round(forecast_units * 1.15)},
+        "confidence_interval": {
+            "lower": round(forecast_units * 0.85),
+            "upper": round(forecast_units * 1.15),
+        },
         "generated_at": datetime.utcnow().isoformat(),
     }
 
@@ -57,10 +68,13 @@ def _detect_anomalies(metric: str, data_points: list[float]) -> dict[str, Any]:
         return {"error": "Need at least 3 data points for anomaly detection"}
     mean = sum(data_points) / len(data_points)
     variance = sum((x - mean) ** 2 for x in data_points) / len(data_points)
-    std = variance ** 0.5
+    std = variance**0.5
     threshold = 2.0 * std
-    anomalies = [{"index": i, "value": v, "deviation": round(abs(v - mean), 2)}
-                 for i, v in enumerate(data_points) if abs(v - mean) > threshold]
+    anomalies = [
+        {"index": i, "value": v, "deviation": round(abs(v - mean), 2)}
+        for i, v in enumerate(data_points)
+        if abs(v - mean) > threshold
+    ]
     return {
         "metric": metric,
         "data_points": len(data_points),
@@ -92,8 +106,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "product_id": {"type": "string", "description": "Product ID (e.g. PROD-001)"},
-                "periods": {"type": "integer", "description": "Number of historical periods to retrieve (default 6)"},
+                "product_id": {
+                    "type": "string",
+                    "description": "Product ID (e.g. PROD-001)",
+                },
+                "periods": {
+                    "type": "integer",
+                    "description": "Number of historical periods to retrieve (default 6)",
+                },
             },
             "required": ["product_id"],
         },
@@ -105,7 +125,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "product_id": {"type": "string", "description": "Product ID"},
-                "horizon_days": {"type": "integer", "description": "Forecast horizon in days"},
+                "horizon_days": {
+                    "type": "integer",
+                    "description": "Forecast horizon in days",
+                },
             },
             "required": ["product_id", "horizon_days"],
         },
@@ -116,7 +139,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "metric": {"type": "string", "description": "Name of the metric being analysed"},
+                "metric": {
+                    "type": "string",
+                    "description": "Name of the metric being analysed",
+                },
                 "data_points": {
                     "type": "array",
                     "items": {"type": "number"},
@@ -133,7 +159,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "product_id": {"type": "string", "description": "Product ID"},
-                "forecast": {"type": "object", "description": "Forecast data dict to publish"},
+                "forecast": {
+                    "type": "object",
+                    "description": "Forecast data dict to publish",
+                },
             },
             "required": ["product_id", "forecast"],
         },

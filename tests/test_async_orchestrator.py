@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import MagicMock
 
-import pytest
 
 from agentic_erp.connectors.dynamics365 import Dynamics365Config
 from agentic_erp.connectors.salesforce import SalesforceConfig
@@ -19,34 +18,52 @@ from agentic_erp.patterns.live_platform_orchestrator import LivePlatformOrchestr
 # Helpers (mirrors test_live_platform_orchestrator.py)
 # ---------------------------------------------------------------------------
 
+
 def _d365_config():
     return Dynamics365Config(
-        tenant_id="t", client_id="c", client_secret="s",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
         environment_url="https://org.crm.dynamics.com",
     )
 
+
 def _sf_config():
-    return SalesforceConfig(instance_url="https://org.my.salesforce.com", access_token="tok")
+    return SalesforceConfig(
+        instance_url="https://org.my.salesforce.com", access_token="tok"
+    )
+
 
 def _ai_config():
-    return AzureAIConfig(endpoint="https://res.openai.azure.com", api_key="k", deployment_name="gpt-4o")
+    return AzureAIConfig(
+        endpoint="https://res.openai.azure.com", api_key="k", deployment_name="gpt-4o"
+    )
+
 
 def _dv_config():
     return DataverseConfig(
         environment_url="https://org.crm.dynamics.com",
-        tenant_id="t", client_id="c", client_secret="s",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
     )
+
 
 def _pp_config():
     return PowerPlatformConfig(
-        environment_id="env-1", environment_url="https://org.crm.dynamics.com",
-        tenant_id="t", client_id="c", client_secret="s",
+        environment_id="env-1",
+        environment_url="https://org.crm.dynamics.com",
+        tenant_id="t",
+        client_id="c",
+        client_secret="s",
     )
+
 
 def _mock_agent(response: str = "ok") -> MagicMock:
     agent = MagicMock()
     agent.run.return_value = response
     return agent
+
 
 def _mock_client(text: str = "synthesized") -> MagicMock:
     block = MagicMock()
@@ -61,6 +78,7 @@ def _mock_client(text: str = "synthesized") -> MagicMock:
 # ---------------------------------------------------------------------------
 # run_async()
 # ---------------------------------------------------------------------------
+
 
 class TestRunAsync:
     def test_returns_dict_of_strings(self):
@@ -138,6 +156,7 @@ class TestRunAsync:
 # ---------------------------------------------------------------------------
 # run_and_synthesize_async()
 # ---------------------------------------------------------------------------
+
 
 class TestRunAndSynthesizeAsync:
     def test_single_platform_returns_directly_no_synthesis(self):

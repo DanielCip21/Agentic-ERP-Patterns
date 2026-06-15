@@ -12,26 +12,50 @@ from agentic_erp.agents.base import BaseERPAgent
 # Simulated backend data
 # ---------------------------------------------------------------------------
 _SERVICE_REGISTRY: dict[str, dict] = {
-    "payment_service": {"url": "https://payments.internal/api/v2", "status": "healthy", "latency_ms": 45},
-    "inventory_service": {"url": "https://inventory.internal/api/v1", "status": "healthy", "latency_ms": 120},
-    "notification_service": {"url": "https://notify.internal/api/v1", "status": "degraded", "latency_ms": 890},
-    "shipping_service": {"url": "https://shipping.internal/api/v3", "status": "healthy", "latency_ms": 67},
+    "payment_service": {
+        "url": "https://payments.internal/api/v2",
+        "status": "healthy",
+        "latency_ms": 45,
+    },
+    "inventory_service": {
+        "url": "https://inventory.internal/api/v1",
+        "status": "healthy",
+        "latency_ms": 120,
+    },
+    "notification_service": {
+        "url": "https://notify.internal/api/v1",
+        "status": "degraded",
+        "latency_ms": 890,
+    },
+    "shipping_service": {
+        "url": "https://shipping.internal/api/v3",
+        "status": "healthy",
+        "latency_ms": 67,
+    },
 }
 
 _API_EVENTS: list[dict] = []
 _FALLBACK_RESPONSES: dict[str, dict] = {
-    "notification_service": {"status": "queued", "message": "Notification queued for retry"},
+    "notification_service": {
+        "status": "queued",
+        "message": "Notification queued for retry",
+    },
 }
 
 
-def _call_api(endpoint: str, method: str, payload: dict | None = None) -> dict[str, Any]:
+def _call_api(
+    endpoint: str, method: str, payload: dict | None = None
+) -> dict[str, Any]:
     # TODO: use httpx for real calls
     status_code = random.choice([200, 200, 200, 422, 500])
     return {
         "endpoint": endpoint,
         "method": method.upper(),
         "status_code": status_code,
-        "response": {"success": status_code == 200, "data": f"Simulated response from {endpoint}"},
+        "response": {
+            "success": status_code == 200,
+            "data": f"Simulated response from {endpoint}",
+        },
         "latency_ms": random.randint(30, 500),
         "called_at": datetime.utcnow().isoformat(),
     }
@@ -85,9 +109,18 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "endpoint": {"type": "string", "description": "Full URL endpoint to call"},
-                "method": {"type": "string", "description": "HTTP method: GET, POST, PUT, DELETE, PATCH"},
-                "payload": {"type": "object", "description": "Request body payload (for POST/PUT/PATCH)"},
+                "endpoint": {
+                    "type": "string",
+                    "description": "Full URL endpoint to call",
+                },
+                "method": {
+                    "type": "string",
+                    "description": "HTTP method: GET, POST, PUT, DELETE, PATCH",
+                },
+                "payload": {
+                    "type": "object",
+                    "description": "Request body payload (for POST/PUT/PATCH)",
+                },
             },
             "required": ["endpoint", "method"],
         },
@@ -98,7 +131,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "service_name": {"type": "string", "description": "Service name from the registry (e.g. payment_service)"},
+                "service_name": {
+                    "type": "string",
+                    "description": "Service name from the registry (e.g. payment_service)",
+                },
             },
             "required": ["service_name"],
         },
@@ -110,8 +146,14 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "service": {"type": "string", "description": "Service name"},
-                "event_type": {"type": "string", "description": "Event type (e.g. success, error, timeout, fallback)"},
-                "details": {"type": "string", "description": "Event details or error message"},
+                "event_type": {
+                    "type": "string",
+                    "description": "Event type (e.g. success, error, timeout, fallback)",
+                },
+                "details": {
+                    "type": "string",
+                    "description": "Event details or error message",
+                },
             },
             "required": ["service", "event_type", "details"],
         },
@@ -122,8 +164,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "service_name": {"type": "string", "description": "Name of the degraded service"},
-                "payload": {"type": "object", "description": "Original request payload to queue for retry"},
+                "service_name": {
+                    "type": "string",
+                    "description": "Name of the degraded service",
+                },
+                "payload": {
+                    "type": "object",
+                    "description": "Original request payload to queue for retry",
+                },
             },
             "required": ["service_name", "payload"],
         },

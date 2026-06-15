@@ -16,6 +16,7 @@ from agentic_erp.observability.tracing import Span, Tracer
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_logger(name):
     log = logging.getLogger(name)
     log.handlers.clear()
@@ -31,6 +32,7 @@ def _make_logger(name):
 # ---------------------------------------------------------------------------
 # TestJsonFormatter
 # ---------------------------------------------------------------------------
+
 
 class TestJsonFormatter:
     def test_output_is_valid_json(self):
@@ -74,6 +76,7 @@ class TestJsonFormatter:
 # TestGetLogger
 # ---------------------------------------------------------------------------
 
+
 class TestGetLogger:
     def test_returns_logger_instance(self):
         result = get_logger("get_logger.instance_test")
@@ -94,6 +97,7 @@ class TestGetLogger:
 # ---------------------------------------------------------------------------
 # TestERPLogger
 # ---------------------------------------------------------------------------
+
 
 class TestERPLogger:
     def _make_erp(self):
@@ -140,6 +144,7 @@ class TestERPLogger:
 # TestSpan
 # ---------------------------------------------------------------------------
 
+
 class TestSpan:
     def test_span_has_unique_span_id(self):
         s1 = Span(name="op1", trace_id="trace-a")
@@ -161,13 +166,21 @@ class TestSpan:
         span = Span(name="op", trace_id="trace-x")
         span.finish()
         d = span.to_dict()
-        for key in ("name", "trace_id", "span_id", "duration_ms", "status", "attributes"):
+        for key in (
+            "name",
+            "trace_id",
+            "span_id",
+            "duration_ms",
+            "status",
+            "attributes",
+        ):
             assert key in d, f"Missing key in to_dict(): {key}"
 
 
 # ---------------------------------------------------------------------------
 # TestTracer
 # ---------------------------------------------------------------------------
+
 
 class TestTracer:
     def test_start_trace_returns_hex_string(self):

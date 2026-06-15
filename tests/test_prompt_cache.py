@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -13,6 +13,7 @@ from agentic_erp.agents.base import BaseERPAgent
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_sync_agent(enable_prompt_cache: bool) -> tuple[BaseERPAgent, MagicMock]:
     mock_client = MagicMock()
@@ -54,6 +55,7 @@ def _make_async_agent(enable_prompt_cache: bool) -> tuple[AsyncBaseERPAgent, Mag
 # BaseERPAgent — prompt cache disabled (default)
 # ---------------------------------------------------------------------------
 
+
 class TestBaseERPAgentPromptCacheDisabled:
     def test_system_is_string_by_default(self):
         agent, mock_client = _make_sync_agent(enable_prompt_cache=False)
@@ -78,6 +80,7 @@ class TestBaseERPAgentPromptCacheDisabled:
 # ---------------------------------------------------------------------------
 # BaseERPAgent — prompt cache enabled
 # ---------------------------------------------------------------------------
+
 
 class TestBaseERPAgentPromptCacheEnabled:
     def test_system_sent_as_list(self):
@@ -126,7 +129,13 @@ class TestBaseERPAgentPromptCacheEnabled:
         mock_client.messages.create.side_effect = [tool_response, end_response]
 
         agent = BaseERPAgent(
-            tools=[{"name": "noop", "description": "no-op", "input_schema": {"type": "object", "properties": {}}}],
+            tools=[
+                {
+                    "name": "noop",
+                    "description": "no-op",
+                    "input_schema": {"type": "object", "properties": {}},
+                }
+            ],
             system_prompt="You are helpful.",
             client=mock_client,
             enable_prompt_cache=True,
@@ -143,6 +152,7 @@ class TestBaseERPAgentPromptCacheEnabled:
 # ---------------------------------------------------------------------------
 # AsyncBaseERPAgent — prompt cache
 # ---------------------------------------------------------------------------
+
 
 class TestAsyncBaseERPAgentPromptCache:
     @pytest.mark.asyncio
@@ -179,6 +189,7 @@ class TestAsyncBaseERPAgentPromptCache:
 # _system_param / _extra_headers helpers
 # ---------------------------------------------------------------------------
 
+
 class TestHelperMethods:
     def test_system_param_disabled(self):
         mock_client = MagicMock()
@@ -188,10 +199,15 @@ class TestHelperMethods:
     def test_system_param_enabled(self):
         mock_client = MagicMock()
         agent = BaseERPAgent(
-            tools=[], system_prompt="hello", client=mock_client, enable_prompt_cache=True
+            tools=[],
+            system_prompt="hello",
+            client=mock_client,
+            enable_prompt_cache=True,
         )
         result = agent._system_param()
-        assert result == [{"type": "text", "text": "hello", "cache_control": {"type": "ephemeral"}}]
+        assert result == [
+            {"type": "text", "text": "hello", "cache_control": {"type": "ephemeral"}}
+        ]
 
     def test_extra_headers_disabled(self):
         mock_client = MagicMock()

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import time
 from typing import TYPE_CHECKING, Any, Generator
 
 import anthropic
@@ -63,7 +62,13 @@ class BaseERPAgent:
 
     def _system_param(self) -> str | list:
         if self._enable_prompt_cache:
-            return [{"type": "text", "text": self.system_prompt, "cache_control": {"type": "ephemeral"}}]
+            return [
+                {
+                    "type": "text",
+                    "text": self.system_prompt,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]
         return self.system_prompt
 
     def _extra_headers(self) -> dict:
@@ -111,7 +116,9 @@ class BaseERPAgent:
                         )
                 messages.append({"role": "user", "content": tool_results})
 
-        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+        raise RuntimeError(
+            "Agent exceeded maximum iterations without completing the task."
+        )
 
     def stream(self, user_message: str) -> Generator[str, None, None]:
         """Stream the final text response token by token.
@@ -150,14 +157,18 @@ class BaseERPAgent:
                 for block in final.content:
                     if hasattr(block, "type") and block.type == "tool_use":
                         result = self._dispatch_tool(block.name, block.input)
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": json.dumps(result),
-                        })
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": json.dumps(result),
+                            }
+                        )
                 messages.append({"role": "user", "content": tool_results})
 
-        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+        raise RuntimeError(
+            "Agent exceeded maximum iterations without completing the task."
+        )
 
     def _dispatch_tool(self, name: str, inputs: dict[str, Any]) -> Any:
         """Override in subclasses to handle tool calls."""

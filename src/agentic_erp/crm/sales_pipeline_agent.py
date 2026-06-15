@@ -11,17 +11,56 @@ from agentic_erp.agents.base import BaseERPAgent
 # Simulated backend data
 # ---------------------------------------------------------------------------
 _OPPORTUNITIES: dict[str, dict] = {
-    "OPP-001": {"id": "OPP-001", "name": "Contoso ERP Expansion", "account": "Contoso Ltd", "stage": "proposal",
-                "value": 75000, "close_date": "2026-08-31", "rep": "REP-01", "probability": 0.6},
-    "OPP-002": {"id": "OPP-002", "name": "Fabrikam CRM Rollout", "account": "Fabrikam Inc", "stage": "negotiation",
-                "value": 130000, "close_date": "2026-07-15", "rep": "REP-02", "probability": 0.8},
-    "OPP-003": {"id": "OPP-003", "name": "Northwind SMB Package", "account": "Northwind Traders", "stage": "discovery",
-                "value": 18000, "close_date": "2026-09-30", "rep": "REP-01", "probability": 0.25},
-    "OPP-004": {"id": "OPP-004", "name": "AdventureWorks Suite", "account": "AdventureWorks", "stage": "closed_won",
-                "value": 95000, "close_date": "2026-06-10", "rep": "REP-02", "probability": 1.0},
+    "OPP-001": {
+        "id": "OPP-001",
+        "name": "Contoso ERP Expansion",
+        "account": "Contoso Ltd",
+        "stage": "proposal",
+        "value": 75000,
+        "close_date": "2026-08-31",
+        "rep": "REP-01",
+        "probability": 0.6,
+    },
+    "OPP-002": {
+        "id": "OPP-002",
+        "name": "Fabrikam CRM Rollout",
+        "account": "Fabrikam Inc",
+        "stage": "negotiation",
+        "value": 130000,
+        "close_date": "2026-07-15",
+        "rep": "REP-02",
+        "probability": 0.8,
+    },
+    "OPP-003": {
+        "id": "OPP-003",
+        "name": "Northwind SMB Package",
+        "account": "Northwind Traders",
+        "stage": "discovery",
+        "value": 18000,
+        "close_date": "2026-09-30",
+        "rep": "REP-01",
+        "probability": 0.25,
+    },
+    "OPP-004": {
+        "id": "OPP-004",
+        "name": "AdventureWorks Suite",
+        "account": "AdventureWorks",
+        "stage": "closed_won",
+        "value": 95000,
+        "close_date": "2026-06-10",
+        "rep": "REP-02",
+        "probability": 1.0,
+    },
 }
 
-_STAGE_ORDER = ["discovery", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"]
+_STAGE_ORDER = [
+    "discovery",
+    "qualification",
+    "proposal",
+    "negotiation",
+    "closed_won",
+    "closed_lost",
+]
 
 _NEXT_ACTIONS: dict[str, str] = {
     "discovery": "Schedule discovery call and send qualification questionnaire",
@@ -33,8 +72,14 @@ _NEXT_ACTIONS: dict[str, str] = {
 }
 
 
-def _list_open_opportunities(stage: str | None = None, min_value: float | None = None) -> list[dict[str, Any]]:
-    results = [o for o in _OPPORTUNITIES.values() if o["stage"] not in ("closed_won", "closed_lost")]
+def _list_open_opportunities(
+    stage: str | None = None, min_value: float | None = None
+) -> list[dict[str, Any]]:
+    results = [
+        o
+        for o in _OPPORTUNITIES.values()
+        if o["stage"] not in ("closed_won", "closed_lost")
+    ]
     if stage:
         results = [o for o in results if o["stage"] == stage]
     if min_value is not None:
@@ -51,11 +96,20 @@ def _advance_opportunity_stage(opp_id: str, new_stage: str) -> dict[str, Any]:
     old_stage = opp["stage"]
     opp["stage"] = new_stage
     opp["updated_at"] = datetime.utcnow().isoformat()
-    return {"opp_id": opp_id, "previous_stage": old_stage, "new_stage": new_stage, "updated_at": opp["updated_at"]}
+    return {
+        "opp_id": opp_id,
+        "previous_stage": old_stage,
+        "new_stage": new_stage,
+        "updated_at": opp["updated_at"],
+    }
 
 
 def _generate_forecast(period: str) -> dict[str, Any]:
-    open_opps = [o for o in _OPPORTUNITIES.values() if o["stage"] not in ("closed_won", "closed_lost")]
+    open_opps = [
+        o
+        for o in _OPPORTUNITIES.values()
+        if o["stage"] not in ("closed_won", "closed_lost")
+    ]
     weighted_pipeline = sum(o["value"] * o["probability"] for o in open_opps)
     committed = sum(o["value"] for o in open_opps if o["stage"] == "negotiation")
     return {
@@ -72,8 +126,14 @@ def _recommend_next_action(opp_id: str) -> dict[str, Any]:
     opp = _OPPORTUNITIES.get(opp_id)
     if not opp:
         return {"error": f"Opportunity {opp_id} not found"}
-    action = _NEXT_ACTIONS.get(opp["stage"], "Review opportunity and consult with manager")
-    return {"opp_id": opp_id, "current_stage": opp["stage"], "recommended_action": action}
+    action = _NEXT_ACTIONS.get(
+        opp["stage"], "Review opportunity and consult with manager"
+    )
+    return {
+        "opp_id": opp_id,
+        "current_stage": opp["stage"],
+        "recommended_action": action,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -86,8 +146,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "stage": {"type": "string", "description": "Pipeline stage to filter by (e.g. discovery, proposal)"},
-                "min_value": {"type": "number", "description": "Minimum opportunity value in USD"},
+                "stage": {
+                    "type": "string",
+                    "description": "Pipeline stage to filter by (e.g. discovery, proposal)",
+                },
+                "min_value": {
+                    "type": "number",
+                    "description": "Minimum opportunity value in USD",
+                },
             },
             "required": [],
         },
@@ -110,7 +176,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "period": {"type": "string", "description": "Forecast period label (e.g. Q3-2026)"},
+                "period": {
+                    "type": "string",
+                    "description": "Forecast period label (e.g. Q3-2026)",
+                },
             },
             "required": ["period"],
         },

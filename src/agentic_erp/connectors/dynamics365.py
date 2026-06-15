@@ -14,7 +14,7 @@ class Dynamics365Config(BaseModel):
     tenant_id: str
     client_id: str
     client_secret: str
-    environment_url: str   # e.g. https://orgname.crm.dynamics.com
+    environment_url: str  # e.g. https://orgname.crm.dynamics.com
     api_version: str = "v9.2"
 
 
@@ -61,7 +61,9 @@ class Dynamics365Connector(BaseHTTPConnector):
 
     # --- Accounts --------------------------------------------------------------
 
-    def get_account(self, account_id: str, select: list[str] | None = None) -> dict[str, Any]:
+    def get_account(
+        self, account_id: str, select: list[str] | None = None
+    ) -> dict[str, Any]:
         """GET /accounts({account_id})"""
         params = {"$select": ",".join(select)} if select else None
         return self._get(f"accounts({account_id})", params=params)
@@ -112,7 +114,9 @@ class Dynamics365Connector(BaseHTTPConnector):
     def get_sales_order(self, order_id: str) -> dict[str, Any]:
         return self._get(f"salesorders({order_id})")
 
-    def get_sales_orders(self, filter_expr: str = "", top: int = 50) -> list[dict[str, Any]]:
+    def get_sales_orders(
+        self, filter_expr: str = "", top: int = 50
+    ) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"$top": top}
         if filter_expr:
             params["$filter"] = filter_expr
@@ -135,6 +139,7 @@ class Dynamics365Connector(BaseHTTPConnector):
     def execute_fetch_xml(self, entity: str, fetch_xml: str) -> list[dict[str, Any]]:
         """POST /entity?fetchXml=... for complex multi-entity queries."""
         import urllib.parse
+
         encoded = urllib.parse.quote(fetch_xml)
         result = self._get(f"{entity}?fetchXml={encoded}")
         return result.get("value", [])

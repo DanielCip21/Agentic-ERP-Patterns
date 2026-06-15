@@ -40,7 +40,9 @@ class Span:
             "trace_id": self.trace_id,
             "span_id": self.span_id,
             "parent_id": self.parent_id,
-            "duration_ms": round(self.duration_ms, 3) if self.duration_ms is not None else None,
+            "duration_ms": round(self.duration_ms, 3)
+            if self.duration_ms is not None
+            else None,
             "status": self.status,
             "attributes": self.attributes,
         }

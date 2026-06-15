@@ -13,6 +13,7 @@ import httpx
 # Used by: Dynamics 365, Power Platform, Dataverse
 # ---------------------------------------------------------------------------
 
+
 class AzureADTokenManager:
     """Fetches and caches Azure AD access tokens (client_credentials flow).
 
@@ -44,12 +45,18 @@ class AzureADTokenManager:
         url = cls.AAD_TOKEN_URL.format(tenant_id=tenant_id)
         resp = httpx.post(
             url,
-            data={"grant_type": "client_credentials", "client_id": client_id,
-                  "client_secret": client_secret, "scope": scope},
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "scope": scope,
+            },
             timeout=15,
         )
         if resp.status_code != 200:
-            raise AuthenticationError(f"AAD token fetch failed ({resp.status_code}): {resp.text}")
+            raise AuthenticationError(
+                f"AAD token fetch failed ({resp.status_code}): {resp.text}"
+            )
         data = resp.json()
         return data["access_token"], int(data["expires_in"])
 
@@ -61,6 +68,7 @@ class AzureADTokenManager:
 # ---------------------------------------------------------------------------
 # Salesforce — Connected App OAuth2 client_credentials grant
 # ---------------------------------------------------------------------------
+
 
 class SalesforceTokenManager:
     """Fetches and caches Salesforce OAuth2 tokens via Connected App.
@@ -97,8 +105,11 @@ class SalesforceTokenManager:
         url = cls.SF_TOKEN_URL.format(login_url=login_url)
         resp = httpx.post(
             url,
-            data={"grant_type": "client_credentials", "client_id": client_id,
-                  "client_secret": client_secret},
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
             timeout=15,
         )
         if resp.status_code != 200:

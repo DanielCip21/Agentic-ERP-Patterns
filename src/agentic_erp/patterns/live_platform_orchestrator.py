@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 
 import anthropic
 
@@ -23,10 +22,29 @@ from agentic_erp.patterns.circuit_breaker import CircuitBreaker
 
 # Keywords used to fast-route a task to the relevant platform(s).
 _PLATFORM_KEYWORDS: dict[str, set[str]] = {
-    "dynamics365": {"dynamics", "d365", "crm", "order", "orders", "opportunity", "opportunities"},
+    "dynamics365": {
+        "dynamics",
+        "d365",
+        "crm",
+        "order",
+        "orders",
+        "opportunity",
+        "opportunities",
+    },
     "salesforce": {"salesforce", "sfdc", "soql", "sf"},
     "power_platform": {"flow", "flows", "automate", "trigger", "power automate"},
-    "azure_ai": {"document", "invoice", "embed", "embedding", "vector", "openai", "gpt", "analyze", "analyse", "search"},
+    "azure_ai": {
+        "document",
+        "invoice",
+        "embed",
+        "embedding",
+        "vector",
+        "openai",
+        "gpt",
+        "analyze",
+        "analyse",
+        "search",
+    },
     "dataverse": {"dataverse", "fetchxml", "odata", "entity", "association"},
 }
 
@@ -81,15 +99,25 @@ class LivePlatformOrchestrator:
         self._agents: dict[str, BaseERPAgent] = {}
 
         if dynamics365_config:
-            self._agents["dynamics365"] = Dynamics365OrderAgent(dynamics365_config, client=self._client)
+            self._agents["dynamics365"] = Dynamics365OrderAgent(
+                dynamics365_config, client=self._client
+            )
         if salesforce_config:
-            self._agents["salesforce"] = SalesforceCRMAgent(salesforce_config, client=self._client)
+            self._agents["salesforce"] = SalesforceCRMAgent(
+                salesforce_config, client=self._client
+            )
         if power_platform_config:
-            self._agents["power_platform"] = PowerPlatformAgent(power_platform_config, client=self._client)
+            self._agents["power_platform"] = PowerPlatformAgent(
+                power_platform_config, client=self._client
+            )
         if azure_ai_config:
-            self._agents["azure_ai"] = AzureAIAgent(azure_ai_config, client=self._client)
+            self._agents["azure_ai"] = AzureAIAgent(
+                azure_ai_config, client=self._client
+            )
         if dataverse_config:
-            self._agents["dataverse"] = DataverseAgent(dataverse_config, client=self._client)
+            self._agents["dataverse"] = DataverseAgent(
+                dataverse_config, client=self._client
+            )
 
         if not self._agents:
             raise ValueError("At least one platform config must be provided.")
@@ -120,11 +148,10 @@ class LivePlatformOrchestrator:
         task_lower = task.lower()
         words = set(task_lower.split())
         matched = [
-            name for name, keywords in _PLATFORM_KEYWORDS.items()
-            if name in self._agents and (
-                words & keywords
-                or any(k in task_lower for k in keywords if " " in k)
-            )
+            name
+            for name, keywords in _PLATFORM_KEYWORDS.items()
+            if name in self._agents
+            and (words & keywords or any(k in task_lower for k in keywords if " " in k))
         ]
         return matched or list(self._agents)
 

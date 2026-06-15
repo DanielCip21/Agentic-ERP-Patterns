@@ -11,16 +11,45 @@ from agentic_erp.agents.base import BaseERPAgent
 # --- Simulated CRM backend ---
 
 _LEADS: dict[str, dict] = {
-    "LEAD-001": {"id": "LEAD-001", "name": "Alice Chen", "company": "TechCorp", "title": "VP Engineering",
-                 "company_size": 500, "industry": "Software", "score": None, "assigned_to": None},
-    "LEAD-002": {"id": "LEAD-002", "name": "Bob Martinez", "company": "RetailCo", "title": "Procurement Manager",
-                 "company_size": 50, "industry": "Retail", "score": None, "assigned_to": None},
-    "LEAD-003": {"id": "LEAD-003", "name": "Carol White", "company": "FinServ Ltd", "title": "CTO",
-                 "company_size": 2000, "industry": "Financial Services", "score": None, "assigned_to": None},
+    "LEAD-001": {
+        "id": "LEAD-001",
+        "name": "Alice Chen",
+        "company": "TechCorp",
+        "title": "VP Engineering",
+        "company_size": 500,
+        "industry": "Software",
+        "score": None,
+        "assigned_to": None,
+    },
+    "LEAD-002": {
+        "id": "LEAD-002",
+        "name": "Bob Martinez",
+        "company": "RetailCo",
+        "title": "Procurement Manager",
+        "company_size": 50,
+        "industry": "Retail",
+        "score": None,
+        "assigned_to": None,
+    },
+    "LEAD-003": {
+        "id": "LEAD-003",
+        "name": "Carol White",
+        "company": "FinServ Ltd",
+        "title": "CTO",
+        "company_size": 2000,
+        "industry": "Financial Services",
+        "score": None,
+        "assigned_to": None,
+    },
 }
 
 _REPS: dict[str, dict] = {
-    "REP-01": {"id": "REP-01", "name": "Sarah Kim", "capacity": 20, "current_leads": 12},
+    "REP-01": {
+        "id": "REP-01",
+        "name": "Sarah Kim",
+        "capacity": 20,
+        "current_leads": 12,
+    },
     "REP-02": {"id": "REP-02", "name": "James Liu", "capacity": 20, "current_leads": 8},
 }
 
@@ -38,7 +67,9 @@ def get_engagement_history(lead_id: str) -> dict[str, Any]:
         "page_views": random.randint(2, 25),
         "email_opens": random.randint(0, 8),
         "demo_requested": random.choice([True, False]),
-        "last_activity": (datetime.utcnow() - timedelta(days=random.randint(0, 14))).date().isoformat(),
+        "last_activity": (datetime.utcnow() - timedelta(days=random.randint(0, 14)))
+        .date()
+        .isoformat(),
         "content_downloaded": random.randint(0, 4),
     }
 
@@ -50,7 +81,11 @@ def score_lead(lead_id: str, score: int, reasoning: str) -> dict[str, Any]:
         return {"error": "Score must be between 0 and 100"}
     _LEADS[lead_id]["score"] = score
     _LEADS[lead_id]["reasoning"] = reasoning
-    return {"lead_id": lead_id, "score": score, "tier": "hot" if score >= 70 else "warm" if score >= 40 else "cold"}
+    return {
+        "lead_id": lead_id,
+        "score": score,
+        "tier": "hot" if score >= 70 else "warm" if score >= 40 else "cold",
+    }
 
 
 def assign_lead(lead_id: str, rep_id: str) -> dict[str, Any]:
@@ -60,7 +95,11 @@ def assign_lead(lead_id: str, rep_id: str) -> dict[str, Any]:
         return {"error": f"Rep {rep_id} not found"}
     _LEADS[lead_id]["assigned_to"] = rep_id
     _REPS[rep_id]["current_leads"] += 1
-    return {"lead_id": lead_id, "assigned_to": rep_id, "rep_name": _REPS[rep_id]["name"]}
+    return {
+        "lead_id": lead_id,
+        "assigned_to": rep_id,
+        "rep_name": _REPS[rep_id]["name"],
+    }
 
 
 # --- Agent ---
@@ -124,8 +163,13 @@ class LeadScoringAgent(BaseERPAgent):
 
     def _dispatch_tool(self, name: str, inputs: dict[str, Any]) -> Any:
         match name:
-            case "get_lead": return get_lead(**inputs)
-            case "get_engagement_history": return get_engagement_history(**inputs)
-            case "score_lead": return score_lead(**inputs)
-            case "assign_lead": return assign_lead(**inputs)
-            case _: return {"error": f"Unknown tool: {name}"}
+            case "get_lead":
+                return get_lead(**inputs)
+            case "get_engagement_history":
+                return get_engagement_history(**inputs)
+            case "score_lead":
+                return score_lead(**inputs)
+            case "assign_lead":
+                return assign_lead(**inputs)
+            case _:
+                return {"error": f"Unknown tool: {name}"}

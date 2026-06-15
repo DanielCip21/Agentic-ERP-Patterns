@@ -32,7 +32,10 @@ _TOOLS = [
             "properties": {
                 "sku": {"type": "string", "description": "Product SKU to reorder"},
                 "quantity": {"type": "integer", "description": "Quantity to order"},
-                "supplier": {"type": "string", "description": "Supplier name (optional)"},
+                "supplier": {
+                    "type": "string",
+                    "description": "Supplier name (optional)",
+                },
             },
             "required": ["sku", "quantity"],
         },

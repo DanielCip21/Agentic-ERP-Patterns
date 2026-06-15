@@ -4,15 +4,34 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from typing import Any
 
-_STANDARD_ATTRS = frozenset({
-    "args", "created", "exc_info", "exc_text", "filename", "funcName",
-    "levelname", "levelno", "lineno", "message", "module", "msecs",
-    "msg", "name", "pathname", "process", "processName", "relativeCreated",
-    "stack_info", "taskName", "thread", "threadName",
-})
+_STANDARD_ATTRS = frozenset(
+    {
+        "args",
+        "created",
+        "exc_info",
+        "exc_text",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "message",
+        "module",
+        "msecs",
+        "msg",
+        "name",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "taskName",
+        "thread",
+        "threadName",
+    }
+)
 
 
 class JsonFormatter(logging.Formatter):
@@ -68,7 +87,11 @@ class ERPLogger:
     def agent_end(self, agent: str, duration_ms: float, status: str = "ok") -> None:
         self._log.info(
             "agent.end",
-            extra={"agent": agent, "duration_ms": round(duration_ms, 2), "status": status},
+            extra={
+                "agent": agent,
+                "duration_ms": round(duration_ms, 2),
+                "status": status,
+            },
         )
 
     def tool_call(
@@ -103,5 +126,9 @@ class ERPLogger:
     ) -> None:
         self._log.warning(
             "circuit_breaker.transition",
-            extra={"platform": platform, "from_state": from_state, "to_state": to_state},
+            extra={
+                "platform": platform,
+                "from_state": from_state,
+                "to_state": to_state,
+            },
         )

@@ -14,7 +14,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "order_id": {"type": "string", "description": "The ERP order ID (e.g. ORD-001)"},
+                "order_id": {
+                    "type": "string",
+                    "description": "The ERP order ID (e.g. ORD-001)",
+                },
             },
             "required": ["order_id"],
         },

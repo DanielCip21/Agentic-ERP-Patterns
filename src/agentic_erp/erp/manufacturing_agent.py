@@ -23,8 +23,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "product_id": {"type": "string", "description": "Product ID (e.g. PROD-001)"},
-                "quantity": {"type": "integer", "description": "Production quantity to plan for"},
+                "product_id": {
+                    "type": "string",
+                    "description": "Product ID (e.g. PROD-001)",
+                },
+                "quantity": {
+                    "type": "integer",
+                    "description": "Production quantity to plan for",
+                },
             },
             "required": ["product_id", "quantity"],
         },
@@ -35,9 +41,15 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "product_id": {"type": "string", "description": "Product ID to manufacture"},
+                "product_id": {
+                    "type": "string",
+                    "description": "Product ID to manufacture",
+                },
                 "quantity": {"type": "integer", "description": "Quantity to produce"},
-                "due_date": {"type": "string", "description": "Required completion date in YYYY-MM-DD format"},
+                "due_date": {
+                    "type": "string",
+                    "description": "Required completion date in YYYY-MM-DD format",
+                },
             },
             "required": ["product_id", "quantity", "due_date"],
         },
@@ -48,8 +60,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "workcenter_id": {"type": "string", "description": "Workcenter ID (e.g. WC-001)"},
-                "date": {"type": "string", "description": "Date to check in YYYY-MM-DD format"},
+                "workcenter_id": {
+                    "type": "string",
+                    "description": "Workcenter ID (e.g. WC-001)",
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Date to check in YYYY-MM-DD format",
+                },
             },
             "required": ["workcenter_id", "date"],
         },

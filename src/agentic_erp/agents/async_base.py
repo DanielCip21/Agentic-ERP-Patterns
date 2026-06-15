@@ -44,7 +44,13 @@ class AsyncBaseERPAgent:
 
     def _system_param(self) -> str | list:
         if self._enable_prompt_cache:
-            return [{"type": "text", "text": self.system_prompt, "cache_control": {"type": "ephemeral"}}]
+            return [
+                {
+                    "type": "text",
+                    "text": self.system_prompt,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ]
         return self.system_prompt
 
     def _extra_headers(self) -> dict:
@@ -79,14 +85,18 @@ class AsyncBaseERPAgent:
                 for block in response.content:
                     if block.type == "tool_use":
                         result = await self._dispatch_tool(block.name, block.input)
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": json.dumps(result),
-                        })
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": json.dumps(result),
+                            }
+                        )
                 messages.append({"role": "user", "content": tool_results})
 
-        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+        raise RuntimeError(
+            "Agent exceeded maximum iterations without completing the task."
+        )
 
     async def astream(self, user_message: str) -> AsyncGenerator[str, None]:
         """Async streaming version — yields text tokens as they arrive from Claude.
@@ -124,14 +134,18 @@ class AsyncBaseERPAgent:
                 for block in final.content:
                     if hasattr(block, "type") and block.type == "tool_use":
                         result = await self._dispatch_tool(block.name, block.input)
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": json.dumps(result),
-                        })
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": json.dumps(result),
+                            }
+                        )
                 messages.append({"role": "user", "content": tool_results})
 
-        raise RuntimeError("Agent exceeded maximum iterations without completing the task.")
+        raise RuntimeError(
+            "Agent exceeded maximum iterations without completing the task."
+        )
 
     async def _dispatch_tool(self, name: str, inputs: dict[str, Any]) -> Any:
         """Override in subclasses to handle tool calls."""

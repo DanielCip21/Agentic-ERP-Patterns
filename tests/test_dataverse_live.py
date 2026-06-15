@@ -23,7 +23,12 @@ TOKEN_RESPONSE = {"access_token": "dv-fake-token", "expires_in": 3600}
 ACCOUNT = {"accountid": "acc-001", "name": "Contoso", "revenue": 5000000}
 ACCOUNTS_LIST = {"value": [ACCOUNT], "@odata.count": 1}
 
-LEAD = {"leadid": "lead-001", "subject": "Test Lead", "firstname": "Bob", "lastname": "Smith"}
+LEAD = {
+    "leadid": "lead-001",
+    "subject": "Test Lead",
+    "firstname": "Bob",
+    "lastname": "Smith",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -55,9 +60,7 @@ def connector(config):
 
 def _mock_token(router: respx.MockRouter) -> None:
     """Add a mock AAD token endpoint to the respx router."""
-    router.post(TOKEN_URL).mock(
-        return_value=httpx.Response(200, json=TOKEN_RESPONSE)
-    )
+    router.post(TOKEN_URL).mock(return_value=httpx.Response(200, json=TOKEN_RESPONSE))
 
 
 # ---------------------------------------------------------------------------
@@ -102,10 +105,10 @@ class TestDataverseConnectorHappyPath:
     @respx.mock
     def test_create_record(self, connector):
         _mock_token(respx)
-        respx.post(f"{DV_BASE}/leads").mock(
-            return_value=httpx.Response(201, json=LEAD)
+        respx.post(f"{DV_BASE}/leads").mock(return_value=httpx.Response(201, json=LEAD))
+        result = connector.create(
+            "leads", {"subject": "Test Lead", "firstname": "Bob", "lastname": "Smith"}
         )
-        result = connector.create("leads", {"subject": "Test Lead", "firstname": "Bob", "lastname": "Smith"})
         assert result["leadid"] == "lead-001"
 
     @respx.mock
@@ -123,7 +126,9 @@ class TestDataverseConnectorHappyPath:
         respx.patch(f"{DV_BASE}/accounts(cr_extid='EXT-001')").mock(
             return_value=httpx.Response(204)
         )
-        result = connector.upsert("accounts", "cr_extid", "EXT-001", {"name": "Contoso"})
+        result = connector.upsert(
+            "accounts", "cr_extid", "EXT-001", {"name": "Contoso"}
+        )
         assert result == {"status": "no_content"}
 
     @respx.mock
@@ -141,7 +146,9 @@ class TestDataverseConnectorHappyPath:
         respx.post(f"{DV_BASE}/accounts(acc-001)/account_contacts/$ref").mock(
             return_value=httpx.Response(204)
         )
-        result = connector.associate("accounts", "acc-001", "account_contacts", "contacts", "con-001")
+        result = connector.associate(
+            "accounts", "acc-001", "account_contacts", "contacts", "con-001"
+        )
         assert result == {"status": "no_content"}
 
     @respx.mock
@@ -166,7 +173,9 @@ class TestDataverseConnectorErrors:
     def test_404_raises_not_found(self, connector):
         _mock_token(respx)
         respx.get(f"{DV_BASE}/accounts(missing-id)").mock(
-            return_value=httpx.Response(404, json={"error": {"code": "0x80040217", "message": "Not found"}})
+            return_value=httpx.Response(
+                404, json={"error": {"code": "0x80040217", "message": "Not found"}}
+            )
         )
         with pytest.raises(NotFoundError):
             connector.get("accounts", "missing-id")

@@ -10,7 +10,10 @@ import respx
 
 from agentic_erp.connectors.auth import AzureADTokenManager, AuthenticationError
 from agentic_erp.connectors.base import ConnectorError, NotFoundError
-from agentic_erp.connectors.power_platform import PowerPlatformConfig, PowerPlatformConnector
+from agentic_erp.connectors.power_platform import (
+    PowerPlatformConfig,
+    PowerPlatformConnector,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +135,9 @@ class TestPowerPlatformConnectorHappyPath:
         respx.post(f"{DV_BASE}/cr123_orders").mock(
             return_value=httpx.Response(201, json=DV_ROW)
         )
-        result = connector.create_dataverse_row("cr123_orders", {"cr123_name": "Test Order"})
+        result = connector.create_dataverse_row(
+            "cr123_orders", {"cr123_name": "Test Order"}
+        )
         assert result["cr123_ordersid"] == "row-001"
 
     @respx.mock
@@ -141,7 +146,9 @@ class TestPowerPlatformConnectorHappyPath:
         respx.patch(f"{DV_BASE}/cr123_orders(row-001)").mock(
             return_value=httpx.Response(204)
         )
-        result = connector.update_dataverse_row("cr123_orders", "row-001", {"cr123_status": "approved"})
+        result = connector.update_dataverse_row(
+            "cr123_orders", "row-001", {"cr123_status": "approved"}
+        )
         assert result == {"status": "no_content"}
 
     @respx.mock
@@ -150,7 +157,9 @@ class TestPowerPlatformConnectorHappyPath:
         respx.get(f"{DV_BASE}/cr123_orders").mock(
             return_value=httpx.Response(200, json=DV_LIST_RESPONSE)
         )
-        result = connector.query_dataverse("cr123_orders", filter_expr="cr123_status eq 'pending'")
+        result = connector.query_dataverse(
+            "cr123_orders", filter_expr="cr123_status eq 'pending'"
+        )
         assert isinstance(result, list)
         assert result[0]["cr123_ordersid"] == "row-001"
 
@@ -174,7 +183,9 @@ class TestPowerPlatformConnectorErrors:
     def test_flow_404_raises_not_found(self, connector):
         _mock_token(respx)
         respx.get(f"{FLOW_BASE}/flows/missing-flow/runs/run-001").mock(
-            return_value=httpx.Response(404, json={"error": {"code": "FlowNotFound", "message": "Not found"}})
+            return_value=httpx.Response(
+                404, json={"error": {"code": "FlowNotFound", "message": "Not found"}}
+            )
         )
         with pytest.raises(NotFoundError):
             connector.get_flow_run_status("missing-flow", "run-001")
@@ -220,7 +231,10 @@ class TestPowerPlatformAgent:
         tool_block = MagicMock()
         tool_block.type = "tool_use"
         tool_block.name = "trigger_flow"
-        tool_block.input = {"flow_id": "flow-guid-001", "payload": {"order_id": "ORD-001"}}
+        tool_block.input = {
+            "flow_id": "flow-guid-001",
+            "payload": {"order_id": "ORD-001"},
+        }
         tool_block.id = "tu_pp_001"
 
         tool_resp = MagicMock()

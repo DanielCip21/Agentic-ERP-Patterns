@@ -10,12 +10,36 @@ from agentic_erp.agents.base import BaseERPAgent
 # --- Simulated backend ---
 
 _ACCOUNTS: dict[str, dict] = {
-    "ACC-001": {"id": "ACC-001", "name": "Contoso Ltd", "arr": 48000, "health_score": 82,
-                "nps": 8, "last_login_days_ago": 2, "open_tickets": 1, "csm": "CSM-01"},
-    "ACC-002": {"id": "ACC-002", "name": "Fabrikam Inc", "arr": 120000, "health_score": 41,
-                "nps": 4, "last_login_days_ago": 18, "open_tickets": 5, "csm": "CSM-02"},
-    "ACC-003": {"id": "ACC-003", "name": "Woodgrove Bank", "arr": 220000, "health_score": 27,
-                "nps": 2, "last_login_days_ago": 30, "open_tickets": 12, "csm": "CSM-01"},
+    "ACC-001": {
+        "id": "ACC-001",
+        "name": "Contoso Ltd",
+        "arr": 48000,
+        "health_score": 82,
+        "nps": 8,
+        "last_login_days_ago": 2,
+        "open_tickets": 1,
+        "csm": "CSM-01",
+    },
+    "ACC-002": {
+        "id": "ACC-002",
+        "name": "Fabrikam Inc",
+        "arr": 120000,
+        "health_score": 41,
+        "nps": 4,
+        "last_login_days_ago": 18,
+        "open_tickets": 5,
+        "csm": "CSM-02",
+    },
+    "ACC-003": {
+        "id": "ACC-003",
+        "name": "Woodgrove Bank",
+        "arr": 220000,
+        "health_score": 27,
+        "nps": 2,
+        "last_login_days_ago": 30,
+        "open_tickets": 12,
+        "csm": "CSM-01",
+    },
 }
 
 _SUCCESS_PLANS: list[dict] = []
@@ -116,8 +140,13 @@ class CustomerSuccessAgent(BaseERPAgent):
 
     def _dispatch_tool(self, name: str, inputs: dict[str, Any]) -> Any:
         match name:
-            case "get_account_health": return get_account_health(**inputs)
-            case "list_at_risk_accounts": return list_at_risk_accounts(**inputs)
-            case "create_success_plan": return create_success_plan(**inputs)
-            case "log_customer_interaction": return log_customer_interaction(**inputs)
-            case _: return {"error": f"Unknown tool: {name}"}
+            case "get_account_health":
+                return get_account_health(**inputs)
+            case "list_at_risk_accounts":
+                return list_at_risk_accounts(**inputs)
+            case "create_success_plan":
+                return create_success_plan(**inputs)
+            case "log_customer_interaction":
+                return log_customer_interaction(**inputs)
+            case _:
+                return {"error": f"Unknown tool: {name}"}

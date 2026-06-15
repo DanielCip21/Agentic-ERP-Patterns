@@ -14,7 +14,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "Full SOQL query string (e.g. SELECT Id, Name FROM Lead WHERE Status = 'New' LIMIT 10)"},
+                "query": {
+                    "type": "string",
+                    "description": "Full SOQL query string (e.g. SELECT Id, Name FROM Lead WHERE Status = 'New' LIMIT 10)",
+                },
             },
             "required": ["query"],
         },
@@ -25,7 +28,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "Salesforce Lead record ID (18-char)"},
+                "record_id": {
+                    "type": "string",
+                    "description": "Salesforce Lead record ID (18-char)",
+                },
             },
             "required": ["record_id"],
         },
@@ -55,8 +61,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "Salesforce Lead record ID"},
-                "data": {"type": "object", "description": "Fields to update on the Lead"},
+                "record_id": {
+                    "type": "string",
+                    "description": "Salesforce Lead record ID",
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Fields to update on the Lead",
+                },
             },
             "required": ["record_id", "data"],
         },
@@ -73,7 +85,10 @@ _TOOLS = [
                     "properties": {
                         "Name": {"type": "string"},
                         "StageName": {"type": "string"},
-                        "CloseDate": {"type": "string", "description": "ISO date string (YYYY-MM-DD)"},
+                        "CloseDate": {
+                            "type": "string",
+                            "description": "ISO date string (YYYY-MM-DD)",
+                        },
                         "AccountId": {"type": "string"},
                     },
                     "required": ["Name", "StageName", "CloseDate", "AccountId"],
@@ -88,8 +103,14 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "Salesforce Opportunity record ID"},
-                "data": {"type": "object", "description": "Fields to update on the Opportunity"},
+                "record_id": {
+                    "type": "string",
+                    "description": "Salesforce Opportunity record ID",
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Fields to update on the Opportunity",
+                },
             },
             "required": ["record_id", "data"],
         },
@@ -100,7 +121,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "record_id": {"type": "string", "description": "Salesforce Account record ID (18-char)"},
+                "record_id": {
+                    "type": "string",
+                    "description": "Salesforce Account record ID (18-char)",
+                },
             },
             "required": ["record_id"],
         },
@@ -145,16 +169,27 @@ class SalesforceCRMAgent(BaseERPAgent):
                 return self._sf.get_record(
                     "Lead",
                     inputs["record_id"],
-                    fields=["Id", "FirstName", "LastName", "Company", "Status", "Email"],
+                    fields=[
+                        "Id",
+                        "FirstName",
+                        "LastName",
+                        "Company",
+                        "Status",
+                        "Email",
+                    ],
                 )
             case "create_lead":
                 return self._sf.create_record("Lead", inputs["data"])
             case "update_lead":
-                return self._sf.update_record("Lead", inputs["record_id"], inputs["data"])
+                return self._sf.update_record(
+                    "Lead", inputs["record_id"], inputs["data"]
+                )
             case "create_opportunity":
                 return self._sf.create_record("Opportunity", inputs["data"])
             case "update_opportunity":
-                return self._sf.update_record("Opportunity", inputs["record_id"], inputs["data"])
+                return self._sf.update_record(
+                    "Opportunity", inputs["record_id"], inputs["data"]
+                )
             case "get_account":
                 return self._sf.get_record(
                     "Account",

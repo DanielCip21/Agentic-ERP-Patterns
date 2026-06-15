@@ -1,6 +1,5 @@
 """Unit tests for simulated ERP tools — no API calls required."""
 
-import pytest
 from agentic_erp.tools import erp_tools
 
 

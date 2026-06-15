@@ -12,22 +12,31 @@ from agentic_erp.agents.base import BaseERPAgent
 # ---------------------------------------------------------------------------
 _ARTICLES: dict[str, dict] = {
     "ART-001": {
-        "id": "ART-001", "title": "How to Reset Your Password",
+        "id": "ART-001",
+        "title": "How to Reset Your Password",
         "content": "Navigate to the login page and click 'Forgot Password'. Enter your email address...",
-        "tags": ["auth", "account", "password"], "status": "active",
-        "created_at": "2025-01-10T09:00:00", "views": 1240,
+        "tags": ["auth", "account", "password"],
+        "status": "active",
+        "created_at": "2025-01-10T09:00:00",
+        "views": 1240,
     },
     "ART-002": {
-        "id": "ART-002", "title": "Configuring SSO with Azure AD",
+        "id": "ART-002",
+        "title": "Configuring SSO with Azure AD",
         "content": "Single Sign-On requires an Enterprise plan. Go to Settings > Security > SSO...",
-        "tags": ["sso", "azure", "security", "enterprise"], "status": "active",
-        "created_at": "2025-03-15T14:00:00", "views": 430,
+        "tags": ["sso", "azure", "security", "enterprise"],
+        "status": "active",
+        "created_at": "2025-03-15T14:00:00",
+        "views": 430,
     },
     "ART-003": {
-        "id": "ART-003", "title": "Importing Data via CSV (Legacy)",
+        "id": "ART-003",
+        "title": "Importing Data via CSV (Legacy)",
         "content": "Use the legacy import tool under Admin > Data. Note: this feature is deprecated...",
-        "tags": ["import", "csv", "data", "deprecated"], "status": "active",
-        "created_at": "2024-06-01T10:00:00", "views": 88,
+        "tags": ["import", "csv", "data", "deprecated"],
+        "status": "active",
+        "created_at": "2024-06-01T10:00:00",
+        "views": 88,
     },
 }
 
@@ -49,7 +58,14 @@ def _search_knowledge_base(query: str, top_k: int = 5) -> dict[str, Any]:
             if word in [t.lower() for t in art["tags"]]:
                 score += 2
         if score > 0:
-            scored.append({"article_id": art["id"], "title": art["title"], "relevance_score": score, "tags": art["tags"]})
+            scored.append(
+                {
+                    "article_id": art["id"],
+                    "title": art["title"],
+                    "relevance_score": score,
+                    "tags": art["tags"],
+                }
+            )
     scored.sort(key=lambda x: x["relevance_score"], reverse=True)
     return {"query": query, "results": scored[:top_k], "total_found": len(scored)}
 
@@ -67,8 +83,13 @@ def _create_article(title: str, content: str, tags: list[str]) -> dict[str, Any]
     _ARTICLE_COUNTER += 1
     art_id = f"ART-{_ARTICLE_COUNTER:03d}"
     article = {
-        "id": art_id, "title": title, "content": content, "tags": tags,
-        "status": "active", "created_at": datetime.utcnow().isoformat(), "views": 0,
+        "id": art_id,
+        "title": title,
+        "content": content,
+        "tags": tags,
+        "status": "active",
+        "created_at": datetime.utcnow().isoformat(),
+        "views": 0,
     }
     _ARTICLES[art_id] = article
     return article
@@ -80,8 +101,12 @@ def _mark_article_outdated(article_id: str) -> dict[str, Any]:
         return {"error": f"Article {article_id} not found"}
     art["status"] = "outdated"
     art["marked_outdated_at"] = datetime.utcnow().isoformat()
-    return {"article_id": article_id, "title": art["title"], "status": "outdated",
-            "marked_outdated_at": art["marked_outdated_at"]}
+    return {
+        "article_id": article_id,
+        "title": art["title"],
+        "status": "outdated",
+        "marked_outdated_at": art["marked_outdated_at"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +120,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "Search query"},
-                "top_k": {"type": "integer", "description": "Maximum number of results to return (default 5)"},
+                "top_k": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (default 5)",
+                },
             },
             "required": ["query"],
         },
@@ -106,7 +134,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "article_id": {"type": "string", "description": "Article ID (e.g. ART-001)"},
+                "article_id": {
+                    "type": "string",
+                    "description": "Article ID (e.g. ART-001)",
+                },
             },
             "required": ["article_id"],
         },
@@ -119,7 +150,11 @@ _TOOLS = [
             "properties": {
                 "title": {"type": "string", "description": "Article title"},
                 "content": {"type": "string", "description": "Full article content"},
-                "tags": {"type": "array", "items": {"type": "string"}, "description": "Classification tags"},
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Classification tags",
+                },
             },
             "required": ["title", "content", "tags"],
         },
@@ -130,7 +165,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "article_id": {"type": "string", "description": "Article ID to mark outdated"},
+                "article_id": {
+                    "type": "string",
+                    "description": "Article ID to mark outdated",
+                },
             },
             "required": ["article_id"],
         },

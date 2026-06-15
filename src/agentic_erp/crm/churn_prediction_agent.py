@@ -11,31 +11,78 @@ from agentic_erp.agents.base import BaseERPAgent
 # Simulated backend data
 # ---------------------------------------------------------------------------
 _CHURN_RISK: dict[str, dict] = {
-    "ACC-001": {"account_id": "ACC-001", "name": "Contoso Ltd", "churn_risk_score": 0.12, "arr": 48000},
-    "ACC-002": {"account_id": "ACC-002", "name": "Fabrikam Inc", "churn_risk_score": 0.68, "arr": 120000},
-    "ACC-003": {"account_id": "ACC-003", "name": "Woodgrove Bank", "churn_risk_score": 0.85, "arr": 220000},
-    "ACC-004": {"account_id": "ACC-004", "name": "Tailspin Toys", "churn_risk_score": 0.31, "arr": 35000},
+    "ACC-001": {
+        "account_id": "ACC-001",
+        "name": "Contoso Ltd",
+        "churn_risk_score": 0.12,
+        "arr": 48000,
+    },
+    "ACC-002": {
+        "account_id": "ACC-002",
+        "name": "Fabrikam Inc",
+        "churn_risk_score": 0.68,
+        "arr": 120000,
+    },
+    "ACC-003": {
+        "account_id": "ACC-003",
+        "name": "Woodgrove Bank",
+        "churn_risk_score": 0.85,
+        "arr": 220000,
+    },
+    "ACC-004": {
+        "account_id": "ACC-004",
+        "name": "Tailspin Toys",
+        "churn_risk_score": 0.31,
+        "arr": 35000,
+    },
 }
 
 _CHURN_SIGNALS: dict[str, list[str]] = {
     "ACC-001": ["Consistent usage", "Recent NPS upgrade"],
-    "ACC-002": ["Login frequency dropped 40% in 30d", "3 unresolved support tickets", "NPS declined from 7 to 4"],
-    "ACC-003": ["No logins in 30 days", "Contract renewal due in 45 days", "Champion left company", "12 open tickets"],
+    "ACC-002": [
+        "Login frequency dropped 40% in 30d",
+        "3 unresolved support tickets",
+        "NPS declined from 7 to 4",
+    ],
+    "ACC-003": [
+        "No logins in 30 days",
+        "Contract renewal due in 45 days",
+        "Champion left company",
+        "12 open tickets",
+    ],
     "ACC-004": ["Slight usage dip", "New champion onboarded recently"],
 }
 
 _PLAYBOOKS: dict[str, list[str]] = {
-    "executive_outreach": ["Schedule EBR with C-suite", "Share product roadmap", "Offer executive sponsorship"],
-    "feature_adoption": ["Assign dedicated CSM training sessions", "Enable premium feature access", "Share success stories"],
-    "support_escalation": ["Prioritise open ticket resolution", "Assign dedicated support engineer", "Daily status updates"],
-    "renewal_risk": ["Prepare renewal proposal early", "Offer multi-year discount", "Executive sponsor call"],
+    "executive_outreach": [
+        "Schedule EBR with C-suite",
+        "Share product roadmap",
+        "Offer executive sponsorship",
+    ],
+    "feature_adoption": [
+        "Assign dedicated CSM training sessions",
+        "Enable premium feature access",
+        "Share success stories",
+    ],
+    "support_escalation": [
+        "Prioritise open ticket resolution",
+        "Assign dedicated support engineer",
+        "Daily status updates",
+    ],
+    "renewal_risk": [
+        "Prepare renewal proposal early",
+        "Offer multi-year discount",
+        "Executive sponsor call",
+    ],
 }
 
 _RETENTION_ACTIONS: list[dict] = []
 
 
 def _get_churn_risk_scores() -> list[dict[str, Any]]:
-    return sorted(_CHURN_RISK.values(), key=lambda x: x["churn_risk_score"], reverse=True)
+    return sorted(
+        _CHURN_RISK.values(), key=lambda x: x["churn_risk_score"], reverse=True
+    )
 
 
 def _analyze_churn_signals(account_id: str) -> dict[str, Any]:
@@ -43,7 +90,13 @@ def _analyze_churn_signals(account_id: str) -> dict[str, Any]:
     if not risk:
         return {"error": f"Account {account_id} not found"}
     signals = _CHURN_SIGNALS.get(account_id, [])
-    risk_level = "high" if risk["churn_risk_score"] >= 0.7 else "medium" if risk["churn_risk_score"] >= 0.4 else "low"
+    risk_level = (
+        "high"
+        if risk["churn_risk_score"] >= 0.7
+        else "medium"
+        if risk["churn_risk_score"] >= 0.4
+        else "low"
+    )
     return {
         "account_id": account_id,
         "account_name": risk["name"],
@@ -58,7 +111,9 @@ def _trigger_retention_playbook(account_id: str, playbook_type: str) -> dict[str
     if account_id not in _CHURN_RISK:
         return {"error": f"Account {account_id} not found"}
     if playbook_type not in _PLAYBOOKS:
-        return {"error": f"Playbook '{playbook_type}' not found. Available: {list(_PLAYBOOKS.keys())}"}
+        return {
+            "error": f"Playbook '{playbook_type}' not found. Available: {list(_PLAYBOOKS.keys())}"
+        }
     return {
         "account_id": account_id,
         "playbook_type": playbook_type,
@@ -100,7 +155,10 @@ _TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "account_id": {"type": "string", "description": "Account ID to analyse"},
+                "account_id": {
+                    "type": "string",
+                    "description": "Account ID to analyse",
+                },
             },
             "required": ["account_id"],
         },
@@ -112,7 +170,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "account_id": {"type": "string", "description": "Account ID"},
-                "playbook_type": {"type": "string", "description": "Playbook type to trigger"},
+                "playbook_type": {
+                    "type": "string",
+                    "description": "Playbook type to trigger",
+                },
             },
             "required": ["account_id", "playbook_type"],
         },
@@ -124,7 +185,10 @@ _TOOLS = [
             "type": "object",
             "properties": {
                 "account_id": {"type": "string", "description": "Account ID"},
-                "action": {"type": "string", "description": "Description of the action taken"},
+                "action": {
+                    "type": "string",
+                    "description": "Description of the action taken",
+                },
             },
             "required": ["account_id", "action"],
         },

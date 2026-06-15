@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import urllib.parse
 from typing import Any
 
 from pydantic import BaseModel, model_validator
@@ -19,7 +18,7 @@ class SalesforceConfig(BaseModel):
       - ``client_id`` + ``client_secret``: Connected App OAuth2 client_credentials flow
     """
 
-    instance_url: str            # e.g. https://myorg.my.salesforce.com
+    instance_url: str  # e.g. https://myorg.my.salesforce.com
     api_version: str = "v60.0"
     login_url: str = "https://login.salesforce.com"
 
@@ -77,7 +76,7 @@ class SalesforceConnector(BaseHTTPConnector):
             token = self.config.access_token
         else:
             token = SalesforceTokenManager.get_token(
-                client_id=self.config.client_id,       # type: ignore[arg-type]
+                client_id=self.config.client_id,  # type: ignore[arg-type]
                 client_secret=self.config.client_secret,  # type: ignore[arg-type]
                 login_url=self.config.login_url,
             )
@@ -103,7 +102,9 @@ class SalesforceConnector(BaseHTTPConnector):
 
     # --- sObject CRUD ---------------------------------------------------------
 
-    def get_record(self, sobject: str, record_id: str, fields: list[str] | None = None) -> dict[str, Any]:
+    def get_record(
+        self, sobject: str, record_id: str, fields: list[str] | None = None
+    ) -> dict[str, Any]:
         """GET /sobjects/{sobject}/{record_id}?fields=..."""
         params = {"fields": ",".join(fields)} if fields else None
         return self._get(f"sobjects/{sobject}/{record_id}", params=params)
@@ -112,7 +113,9 @@ class SalesforceConnector(BaseHTTPConnector):
         """POST /sobjects/{sobject} — returns {id, success, errors}."""
         return self._post(f"sobjects/{sobject}", json=data)
 
-    def update_record(self, sobject: str, record_id: str, data: dict[str, Any]) -> dict[str, Any]:
+    def update_record(
+        self, sobject: str, record_id: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """PATCH /sobjects/{sobject}/{record_id} — Salesforce returns 204 No Content."""
         return self._patch(f"sobjects/{sobject}/{record_id}", json=data)
 
@@ -121,10 +124,16 @@ class SalesforceConnector(BaseHTTPConnector):
         return self._delete(f"sobjects/{sobject}/{record_id}")
 
     def upsert_record(
-        self, sobject: str, external_id_field: str, external_id: str, data: dict[str, Any]
+        self,
+        sobject: str,
+        external_id_field: str,
+        external_id: str,
+        data: dict[str, Any],
     ) -> dict[str, Any]:
         """PATCH /sobjects/{sobject}/{externalIdField}/{externalId} — upsert by external ID."""
-        return self._patch(f"sobjects/{sobject}/{external_id_field}/{external_id}", json=data)
+        return self._patch(
+            f"sobjects/{sobject}/{external_id_field}/{external_id}", json=data
+        )
 
     # --- Describe -------------------------------------------------------------
 
@@ -134,6 +143,8 @@ class SalesforceConnector(BaseHTTPConnector):
 
     # --- Composite ------------------------------------------------------------
 
-    def composite_request(self, composite_request: list[dict[str, Any]]) -> dict[str, Any]:
+    def composite_request(
+        self, composite_request: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """POST /composite — batch up to 25 sub-requests in one round trip."""
         return self._post("composite", json={"compositeRequest": composite_request})

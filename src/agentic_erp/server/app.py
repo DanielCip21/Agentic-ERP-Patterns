@@ -77,4 +77,3 @@ def create_app(
         app.add_middleware(APIKeyMiddleware, api_key=api_key)
 
     return app
-
