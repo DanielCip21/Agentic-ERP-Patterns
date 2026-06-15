@@ -11,16 +11,19 @@ Enterprise Agentic AI patterns for **Microsoft Dynamics 365 / Dataverse / Power 
 ```
 src/agentic_erp/
   agents/
-    base.py                  # BaseERPAgent — core Claude tool-use loop (max 10 turns)
-    async_base.py            # Async variant of BaseERPAgent
-    order_agent.py           # Order lifecycle management
-    inventory_agent.py       # Stock monitoring + PO creation
+    base.py                            # BaseERPAgent — core Claude tool-use loop (max 10 turns)
+    async_base.py                      # Async variant of BaseERPAgent
+    autonomous_profitability_agent.py  # ★ Autonomous Profitability Agent (see below)
+    order_agent.py                     # Order lifecycle management
+    inventory_agent.py                 # Stock monitoring + PO creation
     cashflow_forecast_agent.py
     compliance_agent.py
     crypto_payment_agent.py
     fraud_detection_agent.py
     game_analytics_agent.py
     vendor_risk_agent.py
+  prompts/
+    autonomous_prompts.py  # ★ 10 specialist persona prompts + composite system prompt
   patterns/
     multi_agent.py           # Keyword-based task router → specialist agents
     human_in_loop.py         # Approval-gated tool calls (Teams / callback)
@@ -35,8 +38,9 @@ src/agentic_erp/
     d365.py                  # Dynamics 365 REST connector
 
 tests/
-  test_agents.py             # Unit tests — Anthropic client fully mocked
-  integration/               # Live D365 + Teams tests (skipped without secrets)
+  test_agents.py                       # Unit tests — Anthropic client fully mocked
+  test_autonomous_profitability.py     # ★ Tests for profitability agent + prompts
+  integration/                         # Live D365 + Teams tests (skipped without secrets)
 
 dynamics-365-agentic-rag/    # Separate RAG sub-project
 docs/                        # Strategic innovation report
@@ -104,6 +108,53 @@ pytest tests/integration
 
 ---
 
+## Autonomous Profitability Layer
+
+All work in this repo is governed by the principle of **autonomous, continuous
+profitability improvement**.  The `AutonomousProfitabilityAgent` embeds ten
+specialist engineering personas that Claude cycles through on every task:
+
+| # | Persona | Profitability Contribution |
+|---|---------|---------------------------|
+| 1 | Startup Engineer | Deliver value fast; avoid over-engineering waste |
+| 2 | Codebase Auditor | Surface quality debt that increases maintenance cost |
+| 3 | Production Debugger | Root-cause failures that erode reliability and revenue |
+| 4 | Performance Optimizer | Cut latency and infra cost; raise throughput |
+| 5 | Architecture Rebuilder | Reduce coupling so the system scales cheaply |
+| 6 | Systems Architect | Design for real growth; avoid costly re-architecture |
+| 7 | Technical Lead | Challenge decisions; prefer long-term ROI |
+| 8 | Security Auditor | Prevent breaches that destroy margin and trust |
+| 9 | DevOps Engineer | Maximise uptime; automate toil; ship faster |
+| 10 | Profitability Analyst | Translate every metric into financial impact |
+
+### Using the agent
+
+```python
+from agentic_erp.agents import AutonomousProfitabilityAgent
+
+agent = AutonomousProfitabilityAgent()
+report = agent.run("Run a full profitability analysis and give me the top 3 actions.")
+print(report)
+```
+
+### Using a single persona prompt
+
+```python
+from agentic_erp.prompts import get_persona_prompt, AUTONOMOUS_PROFITABILITY_SYSTEM
+
+# Embed in any agent's system_prompt
+security_directive = get_persona_prompt("security_auditor")
+```
+
+### Persona names
+
+`startup_engineer` · `codebase_auditor` · `production_debugger` ·
+`performance_optimizer` · `architecture_rebuilder` · `systems_architect` ·
+`technical_lead` · `security_auditor` · `devops_engineer` ·
+`autonomous_profitability`
+
+---
+
 ## Adding a New Agent
 
 1. Create `src/agentic_erp/agents/my_agent.py`
@@ -111,3 +162,5 @@ pytest tests/integration
 3. Define `TOOLS` list (Claude tool schemas)
 4. Override `_dispatch_tool(tool_name, tool_input)` to handle each tool
 5. Add unit tests in `tests/` using the mocked client pattern from `test_agents.py`
+6. Consider embedding one or more persona prompts from `agentic_erp.prompts` to
+   ensure the agent reasons through a profitability lens by default

@@ -9,6 +9,7 @@ from agentic_erp.agents.cashflow_forecast_agent import CashFlowForecastAgent
 from agentic_erp.agents.vendor_risk_agent import VendorRiskAgent
 from agentic_erp.agents.game_analytics_agent import GameRevenueAnalyticsAgent
 from agentic_erp.agents.crm_agent import CRMAgent
+from agentic_erp.agents.autonomous_profitability_agent import AutonomousProfitabilityAgent
 
 __all__ = [
     "BaseERPAgent",
@@ -22,4 +23,5 @@ __all__ = [
     "VendorRiskAgent",
     "GameRevenueAnalyticsAgent",
     "CRMAgent",
+    "AutonomousProfitabilityAgent",
 ]
